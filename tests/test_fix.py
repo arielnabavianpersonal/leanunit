@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-from nounit.fix import FixError, run_fix
+from nounit.fix import FixError, build_prompt, run_fix
 from nounit.report import Finding, FindingKind, Report
 from tests.fakes import make_config
 
@@ -101,3 +101,18 @@ def test_should_check_again_when_the_agent_times_out(project):
     result = run_fix(project, check=check, spawn=spawn)
 
     assert (result.agent_exit_code, check.calls) == (None, 2)
+
+
+def test_should_send_the_intent_and_the_code_diff_to_the_agent(project):
+    root = project.root
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(["git", "add", "sample_mod.py"], cwd=root, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-q", "-m", "base"], cwd=root, check=True
+    )
+    (root / "sample_mod.py").write_text("changed code")
+
+    prompt = build_prompt(project, FAILED, intent="I removed the guard on purpose.")
+
+    assert "I removed the guard on purpose." in prompt
+    assert "+changed code" in prompt

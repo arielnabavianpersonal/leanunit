@@ -50,6 +50,7 @@ def _parser() -> argparse.ArgumentParser:
     approve.set_defaults(handler=_approve)
 
     fix = commands.add_parser("fix", help="start the agent on a failed check, then check again")
+    fix.add_argument("--intent", help="tell the agent what you changed on purpose")
     fix.set_defaults(handler=_fix)
 
     init = commands.add_parser("init", help="make nounit.toml, nounit.lock, and the Lean project")
@@ -82,7 +83,7 @@ def _approve(root: Path, options: argparse.Namespace) -> int:
 
 
 def _fix(root: Path, options: argparse.Namespace) -> int:
-    result = run_fix(load_config(root))
+    result = run_fix(load_config(root), intent=options.intent)
     if not result.started_agent:
         print(result.before.render(), end="")
         human = result.before.owned_by(Owner.HUMAN)
