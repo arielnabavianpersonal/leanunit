@@ -12,7 +12,6 @@ PROJECT_ROOTS = ("Laws", "Model", "Proofs", "Gen")
 SAMPLER_IMPORT_ROOTS = ("Model", "Gen")
 GENERATED_DIR = "NoUnitGenerated"
 AUDIT_MARKER = "NOUNIT_AUDIT "
-SAMPLER_EXE = "nounit_conform"
 MAX_ARITY = 4
 DEFAULT_MAX_SIZE = 12
 
@@ -99,10 +98,11 @@ class LeanProject:
         if not audit.mirrors:
             return ()
         imports = [module for module in self._project_modules() if module.split(".")[0] in SAMPLER_IMPORT_ROOTS]
-        self._write_generated("Conform.lean", _sampler_source(imports, audit.mirrors))
-        self._run("sampler build", [self._lake, "build", SAMPLER_EXE])
-        sampler = self._path / ".lake" / "build" / "bin" / SAMPLER_EXE
-        output = self._run("sampler", [str(sampler), str(count), str(seed), str(max_size)])
+        sampler = self._write_generated("Conform.lean", _sampler_source(imports, audit.mirrors))
+        output = self._run(
+            "sampler",
+            [self._lake, "env", "lean", "--run", str(sampler.relative_to(self._path)), str(count), str(seed), str(max_size)],
+        )
         return tuple(_parse_sample(line) for line in output.splitlines() if line.strip())
 
     def _project_modules(self) -> list[str]:

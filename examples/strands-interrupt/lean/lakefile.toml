@@ -1,0 +1,10 @@
+name = "strands_interrupt_spec"
+defaultTargets = ["Spec"]
+
+[[require]]
+name = "NoUnit"
+path = "../../../src/nounit/lean"
+
+[[lean_lib]]
+name = "Spec"
+globs = ["Laws.+", "Model.+", "Proofs.+", "Gen.+"]
