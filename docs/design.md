@@ -97,7 +97,7 @@ It stops with an error when the environment variable `NOUNIT_AGENT` is set.
 ### `nounit fix`
 
 1. It runs the check. If the check passes, the command stops.
-2. It starts the agent command from `nounit.toml`, and it sends the report on stdin.
+2. It starts the agent command from `nounit.toml`. On stdin, it sends the report, the uncommitted diff of the code, and the `--intent` text.
 3. It restores each protected file that the agent changed.
 4. It runs the check again and shows the result and the diagnosis of the agent.
 
