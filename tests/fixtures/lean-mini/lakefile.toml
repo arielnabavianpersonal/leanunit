@@ -1,0 +1,13 @@
+name = "lean_mini"
+
+[[require]]
+name = "NoUnit"
+path = "../../../src/nounit/lean"
+
+[[lean_lib]]
+name = "Spec"
+globs = ["Laws.+", "Model.+", "Proofs.+", "Gen.+"]
+
+[[lean_exe]]
+name = "nounit_conform"
+root = "NoUnitGenerated.Conform"
