@@ -1,0 +1,5 @@
+name = "NoUnit"
+defaultTargets = ["NoUnit"]
+
+[[lean_lib]]
+name = "NoUnit"
