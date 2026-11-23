@@ -80,9 +80,24 @@ The proof is about the Lean model. Conformance ties the model to your code only 
 
 - Lean 4 through [elan](https://github.com/leanprover/elan). The Lean projects pin `leanprover/lean4:v4.36.0`.
 - Python 3.11 or later for LeanUnit. LeanUnit has no run-time dependencies.
-- An interpreter that can import your code. LeanUnit uses its own interpreter if you do not set one.
+- For Python code, an interpreter that can import your code. LeanUnit uses its own interpreter if you do not set one.
+- For TypeScript and JavaScript code, Node.js 22 or later. `leanunit new` also uses the `typescript` package of your project.
 
 LeanUnit runs the Lean sampler with `lean --run`, so it does not need a C compiler.
+
+## Languages
+
+LeanUnit supports Python, TypeScript, and JavaScript. The table name in `leanunit.toml` selects the language.
+
+| Language | Table | Default runtime | Target form |
+|---|---|---|---|
+| Python | `[python]` | The interpreter of LeanUnit | `package.module:Class` or `package.module:function` |
+| TypeScript | `[typescript]` | `node --experimental-strip-types` | `path/to/module:Class` or `path/to/module:function` |
+| JavaScript | `[javascript]` | `node` | `path/to/module:Class` or `path/to/module:function` |
+
+For TypeScript and JavaScript, the module path is relative to `source_root`, without the file extension.
+To use another runtime, set `runtime` in the table, for example `runtime = ["node", "--import", "tsx"]`.
+Each language has a small runner with the same JSON protocol, so the Lean side does not change between languages.
 
 ## Install
 
@@ -94,7 +109,7 @@ uv tool install --editable /path/to/leanunit
 
 ## Quick start
 
-1. Make the files: `leanunit init --source-root src --cover mypackage.module:MyClass`.
+1. Make the files: `leanunit init --source-root src --cover mypackage.module:MyClass`. For TypeScript, add `--language typescript`.
 2. Tell your agent to read `LEANUNIT.md` and to cover `mypackage.module:MyClass`.
 3. The agent runs `leanunit new`, completes the models, writes draft laws, and proves them. It stops when only approvals are pending.
 4. Read each draft law in `lean/Laws/`, and approve the laws that you agree with: `leanunit approve <law>`.
@@ -185,9 +200,10 @@ After the bug fix in `docs/demo.md`, the agent updates the model, and all 14 law
 
 ## Limits
 
-- LeanUnit supports Python only. TypeScript is next, with the same protocol and a new runner.
-- LeanUnit supports pure logic only. It does not support I/O, async code, threads, floats, or callbacks.
-- LeanUnit mirrors plain functions and the methods of dataclasses. It does not mirror classmethods, staticmethods, properties, or dunder methods.
+- LeanUnit supports pure logic only. It does not support I/O, threads, floats, or callbacks.
+- In Python, LeanUnit mirrors plain functions and the methods of dataclasses. It does not mirror async functions, classmethods, staticmethods, properties, or dunder methods.
+- In TypeScript and JavaScript, LeanUnit mirrors exported functions and the methods of exported classes. It waits for the result of an async function. It does not mirror static methods, getters, setters, or functions with rest parameters.
+- TypeScript runs through the type stripping of Node.js. For syntax that type stripping does not support, such as `enum`, set another `runtime`.
 - Conformance is random testing. A model can differ from the code on inputs that the samples do not include.
 - LeanUnit does not shrink a failure. It shows the smallest failure that it found.
 

@@ -14,7 +14,8 @@ def test_should_use_defaults_when_only_cover_is_set(tmp_path):
     config = load_config(write(tmp_path, '[python]\ncover = ["pkg.mod:Thing"]\n'))
 
     assert config.cover == ("pkg.mod:Thing",)
-    assert config.python == (sys.executable,)
+    assert config.runtime == (sys.executable,)
+    assert config.language.name == "python"
     assert config.samples == DEFAULT_SAMPLES
     assert config.lean_project == tmp_path / "lean"
     assert config.agent_command == ()
@@ -41,7 +42,7 @@ command = ["claude", "-p"]
 timeout_seconds = 60
 """))
 
-    assert config.python == ("python3.12",)
+    assert config.runtime == ("python3.12",)
     assert config.source_root == tmp_path / "src"
     assert config.exclude == ("a.b:C.skip",)
     assert config.lean_project == tmp_path / "spec"

@@ -1,4 +1,6 @@
+import os
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -10,13 +12,23 @@ LEANUNIT_LEAN = REPO / "src" / "leanunit" / "lean"
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
+def typescript_available() -> bool:
+    if os.environ.get("LEANUNIT_TYPESCRIPT"):
+        return True
+    probe = subprocess.run(["node", "-e", "require.resolve('typescript')"], capture_output=True, check=False)
+    return probe.returncode == 0
+
+
 def pytest_collection_modifyitems(config, items):
-    if find_lake():
-        return
-    skip = pytest.mark.skip(reason="lake is not installed")
+    missing = {
+        "lean": None if find_lake() else "lake is not installed",
+        "node": None if shutil.which("node") else "node is not installed",
+        "typescript": None if shutil.which("node") and typescript_available() else "the typescript package is not available",
+    }
     for item in items:
-        if "lean" in item.keywords:
-            item.add_marker(skip)
+        for marker, reason in missing.items():
+            if reason and marker in item.keywords:
+                item.add_marker(pytest.mark.skip(reason=reason))
 
 
 @pytest.fixture

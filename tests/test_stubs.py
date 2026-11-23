@@ -3,7 +3,7 @@ import pytest
 from leanunit.check import run_check
 from leanunit.config import load_config
 from leanunit.scaffold import init_project
-from leanunit.stubs import StubError, describe_target, render_files, scaffold_target
+from leanunit.stubs import StubError, describe_target, lean_name, render_files, scaffold_target
 from tests.fakes import make_config
 from tests.sample_code import write_sample_module
 
@@ -140,3 +140,8 @@ def test_should_build_and_run_a_five_argument_mirror_without_harness_errors(tmp_
     report = run_check(config)
 
     assert {finding.kind.label for finding in report.findings} == {"mismatch", "unused_mirror"}
+
+
+@pytest.mark.parametrize("name", ["prefix", "notation", "mutual", "local"])
+def test_should_escape_lean_command_keywords(name):
+    assert lean_name(name) == f"«{name}»"

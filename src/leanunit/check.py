@@ -8,7 +8,7 @@ from leanunit.config import Config
 from leanunit.conformance import ConformanceResult, run_conformance
 from leanunit.lean import Audit, LawInfo, LeanError, LeanProject, Sample
 from leanunit.lock import Lock, load_lock
-from leanunit.pycode import TargetError, methods_of, module_file, split_target
+from leanunit.pycode import TargetError, split_target
 from leanunit.report import Finding, FindingKind, LawState, LawStatus, Report, TargetCoverage, TargetStatus
 
 ALLOWED_AXIOMS = frozenset({"propext", "Classical.choice", "Quot.sound"})
@@ -149,7 +149,7 @@ def _cover_targets(config: Config) -> CoverTargets:
     errors: list[Finding] = []
     for target in config.cover:
         try:
-            methods = methods_of(config.source_root, target)
+            methods = config.language.methods_of(config.runtime, config.source_root, config.root, target)
         except TargetError as error:
             errors.append(Finding(FindingKind.TARGET_ERROR, target, str(error)))
             continue
@@ -223,7 +223,7 @@ def _conformance_findings(config: Config, result: ConformanceResult) -> Iterable
 
 def _source_lines(config: Config, target: str, numbers: tuple[int, ...]) -> list[tuple[int, str]]:
     try:
-        source = module_file(config.source_root, split_target(target)[0]).read_text().splitlines()
+        source = config.language.module_file(config.source_root, split_target(target)[0]).read_text().splitlines()
     except TargetError:
         return [(number, "") for number in numbers]
     return [(number, source[number - 1].strip() if number <= len(source) else "") for number in numbers]

@@ -11,7 +11,6 @@ from typing import Any
 from leanunit.config import Config
 from leanunit.lean import Sample
 
-RUNNER_SCRIPT = Path(__file__).parent / "runners" / "python_runner.py"
 RUNNER_TIMEOUT_SECONDS = 600
 MAX_HARNESS_ERRORS = 5
 
@@ -48,16 +47,16 @@ def run_conformance(config: Config, samples: Sequence[Sample]) -> ConformanceRes
     if not samples:
         return ConformanceResult()
     requests = "".join(json.dumps({"target": sample.target, "args": sample.args}) + "\n" for sample in samples)
-    command = [*config.python, str(RUNNER_SCRIPT), "--source-root", str(config.source_root)]
+    command = config.language.runner_command(config.runtime, config.source_root)
     try:
         completed = subprocess.run(
             command, input=requests, capture_output=True, text=True, cwd=config.root, timeout=RUNNER_TIMEOUT_SECONDS
         )
     except (OSError, subprocess.TimeoutExpired) as error:
-        return ConformanceResult(harness_errors=(f"the Python runner did not run: {error}",))
+        return ConformanceResult(harness_errors=(f"the {config.language.name} runner did not run: {error}",))
     lines = completed.stdout.splitlines()
     if completed.returncode != 0 or len(lines) != len(samples) + 1:
-        return ConformanceResult(harness_errors=(f"the Python runner failed: {completed.stderr[-2000:]}",))
+        return ConformanceResult(harness_errors=(f"the {config.language.name} runner failed: {completed.stderr[-2000:]}",))
     return _compare(samples, [json.loads(line) for line in lines[:-1]], json.loads(lines[-1])["coverage"])
 
 

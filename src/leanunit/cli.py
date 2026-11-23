@@ -15,6 +15,7 @@ from leanunit.check import run_check
 from leanunit.config import ConfigError, load_config
 from leanunit.fix import FixError, run_fix
 from leanunit.guide import guide_text, write_guide
+from leanunit.languages import LANGUAGES
 from leanunit.lean import LeanError
 from leanunit.lock import LockError
 from leanunit.pycode import TargetError
@@ -80,7 +81,8 @@ def _parser() -> argparse.ArgumentParser:
     guide.set_defaults(handler=_guide)
 
     init = commands.add_parser("init", help="make leanunit.toml, leanunit.lock, the Lean project, and LEANUNIT.md")
-    init.add_argument("--source-root", default=".", help="the directory that Python imports the code from")
+    init.add_argument("--language", choices=sorted(LANGUAGES), default="python", help="the language of the code to cover")
+    init.add_argument("--source-root", default=".", help="the directory that the code is imported from")
     init.add_argument("--cover", action="append", default=[], help="a module:Qualname target, more than once")
     init.set_defaults(handler=_init)
     return parser
@@ -161,7 +163,7 @@ def _guide(root: Path, options: argparse.Namespace) -> int:
 
 
 def _init(root: Path, options: argparse.Namespace) -> int:
-    result = init_project(root, options.source_root, tuple(options.cover))
+    result = init_project(root, options.source_root, tuple(options.cover), options.language)
     for path in result.created:
         print(f"created {path}")
     return EXIT_OK

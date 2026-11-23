@@ -184,3 +184,18 @@ The first laws are:
 
 Pytest tests cover the Python core: the lock, the codec, the runner, line coverage, the check report, `approve`, and the file guard in `fix`.
 An integration test runs `leanunit check` on the example when `lake` is available.
+
+## Version 0.4: more languages
+
+The `languages` module hides each difference between languages behind one interface.
+The interface gives the runner command, the type description, and the methods of a class.
+It also finds the source file of a module and the source files to protect.
+The table name in `leanunit.toml` selects the language. The default is Python.
+
+TypeScript and JavaScript share one runner, `node_runner.mjs`. It uses the same JSON protocol as the Python runner.
+The runner makes an object of the class from the JSON fields, and it waits for the result of an async function.
+It measures line coverage with the precise coverage of V8. Type stripping keeps the source positions, so the line numbers agree with the TypeScript file.
+
+The helper `node_describe.mjs` reads the types through the TypeScript compiler API of the project.
+It gives the same type tree as the Python runner, so `leanunit new` writes Lean in the same way for each language.
+A new language needs a runner and a describe helper. The Lean library and the core do not change.

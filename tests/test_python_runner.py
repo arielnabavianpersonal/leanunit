@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from leanunit.conformance import RUNNER_SCRIPT
+from leanunit.languages import PYTHON_RUNNER as RUNNER_SCRIPT
 from tests.sample_code import write_sample_module
 
 EMPTY_BOX = {"items": {}, "tags": [], "note": None, "_count": 0}

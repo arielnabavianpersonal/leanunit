@@ -64,6 +64,18 @@ A human approves each law. Anyone can write the models, the generators, and the 
 7. Run `leanunit coverage` to find the functions that have no laws.
 8. Ask a human to approve the draft laws.
 
+## Targets in each language
+
+The table name in `leanunit.toml` is the language of the code: `[python]`, `[typescript]`, or `[javascript]`.
+
+| Language | Target examples |
+|---|---|
+| Python | `strands.interrupt:_InterruptState` and `strands.interrupt:_InterruptState.resume` |
+| TypeScript or JavaScript | `src/interrupt:InterruptState` and `src/interrupt:InterruptState.resume` |
+
+For TypeScript and JavaScript, the module is the path from `source_root`, without the file extension.
+A TypeScript `number` becomes a Lean `Int`. A field or a parameter without a type becomes `Val`.
+
 ## Rules
 
 - Do not edit `leanunit.lock`. Do not run `leanunit approve`, unless you are the human who approves.

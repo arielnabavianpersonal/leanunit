@@ -1,23 +1,24 @@
 from __future__ import annotations
 
-import json
 import re
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from leanunit.config import Config
-from leanunit.conformance import RUNNER_SCRIPT
-from leanunit.pycode import split_target
+from leanunit.pycode import TargetError, split_target
 
 LEAN_PRIMITIVES = {"str": "String", "int": "Int", "bool": "Bool", "float": "Val", "none": "Unit", "any": "Val"}
 LEAN_KEYWORDS = frozenset({
-    "at", "axiom", "break", "by", "calc", "catch", "class", "continue", "def", "deriving", "do", "else", "end",
-    "example", "extends", "finally", "for", "from", "fun", "have", "if", "import", "in", "inductive", "instance",
-    "let", "macro", "match", "mut", "namespace", "noncomputable", "obtain", "open", "partial", "private", "Prop",
-    "protected", "return", "section", "show", "Sort", "structure", "suffices", "syntax", "then", "theorem", "try",
-    "Type", "universe", "unless", "unsafe", "variable", "where", "with",
+    "Prop", "Sort", "Type", "abbrev", "at", "attribute", "axiom", "break", "builtin_initialize", "by",
+    "calc", "catch", "class", "continue", "decreasing_by", "def", "deriving", "do", "elab", "else",
+    "end", "example", "export", "extends", "finally", "for", "forall", "from", "fun", "have", "hiding",
+    "if", "import", "in", "include", "inductive", "infix", "infixl", "infixr", "initialize", "instance",
+    "let", "local", "macro", "macro_rules", "match", "mut", "mutual", "namespace", "nofun", "nomatch",
+    "noncomputable", "notation", "obtain", "omit", "opaque", "open", "partial", "postfix", "prefix",
+    "private", "protected", "renaming", "return", "scoped", "section", "set_option", "show", "structure",
+    "suffices", "syntax", "termination_by", "then", "theorem", "try", "universe", "unless", "unsafe",
+    "variable", "where", "with",
 })
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_']*\Z")
 MAX_ARGUMENTS = 8
@@ -62,19 +63,10 @@ def scaffold_target(config: Config, target: str, name: str | None = None) -> Stu
 
 
 def describe_target(config: Config, target: str) -> dict[str, Any]:
-    split_target(target)
-    command = [*config.python, str(RUNNER_SCRIPT), "--source-root", str(config.source_root), "--describe", target]
     try:
-        completed = subprocess.run(command, capture_output=True, text=True, cwd=config.root, check=False)
-    except OSError as error:
-        raise StubError(f"the Python runner did not start: {error}") from error
-    lines = completed.stdout.strip().splitlines()
-    if completed.returncode != 0 or not lines:
-        raise StubError(f"the Python runner failed: {completed.stderr[-2000:]}")
-    answer = json.loads(lines[-1])
-    if "error" in answer:
-        raise StubError(answer["error"])
-    return answer
+        return config.language.describe(config.runtime, config.source_root, config.root, target)
+    except TargetError as error:
+        raise StubError(str(error)) from error
 
 
 def default_name(target: str, description: dict[str, Any]) -> str:

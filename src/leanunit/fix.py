@@ -17,7 +17,6 @@ from leanunit.scaffold import LEANUNIT_LEAN
 
 DIAGNOSIS_FILE = Path(".leanunit") / "diagnosis.md"
 LEAN_PROTECTED_FILES = ("lakefile.toml", "lakefile.lean", "lean-toolchain", "lake-manifest.json")
-SKIPPED_DIRS = frozenset({".git", ".venv", ".lake", "node_modules", "__pycache__"})
 MAX_DIFF_CHARS = 20000
 
 
@@ -133,22 +132,12 @@ def restore(before: Snapshot, after_paths: list[Path]) -> list[Path]:
 
 def _protected_paths(config: Config) -> list[Path]:
     fixed = [config.root / CONFIG_FILE, config.lock_path, *(config.lean_project / name for name in LEAN_PROTECTED_FILES)]
-    return sorted({*fixed, *_python_files(config.source_root, config.lean_project), *_library_files(LEANUNIT_LEAN)})
+    code = config.language.source_files(config.source_root, config.lean_project)
+    return sorted({*fixed, *code, *_library_files(LEANUNIT_LEAN)})
 
 
 def _library_files(library: Path) -> list[Path]:
     return [path for path in library.rglob("*.lean") if ".lake" not in path.parts]
-
-
-def _python_files(source_root: Path, lean_project: Path) -> list[Path]:
-    found = []
-    for directory, subdirectories, files in os.walk(source_root):
-        current = Path(directory)
-        subdirectories[:] = [
-            name for name in subdirectories if name not in SKIPPED_DIRS and current / name != lean_project
-        ]
-        found += [current / name for name in files if name.endswith(".py")]
-    return found
 
 
 def _run_agent(config: Config, spawn: Callable[..., subprocess.CompletedProcess], prompt: str) -> int | None:
