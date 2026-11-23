@@ -1,8 +1,8 @@
 name = "lean_mini"
 
 [[require]]
-name = "NoUnit"
-path = "../../../src/nounit/lean"
+name = "LeanUnit"
+path = "../../../src/leanunit/lean"
 
 [[lean_lib]]
 name = "Spec"

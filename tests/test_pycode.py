@@ -1,6 +1,6 @@
 import pytest
 
-from nounit.pycode import TargetError, methods_of
+from leanunit.pycode import TargetError, methods_of
 
 SOURCE = """
 class Machine:
@@ -11,6 +11,9 @@ class Machine:
         pass
 
     VALUE = 1
+
+    def __eq__(self, other):
+        return True
 
 
 def helper(x):

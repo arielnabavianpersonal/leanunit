@@ -1,6 +1,6 @@
 import Model.Interrupt
 
-open NoUnit Model.Interrupt
+open LeanUnit Model.Interrupt
 
 namespace Laws.Interrupt
 

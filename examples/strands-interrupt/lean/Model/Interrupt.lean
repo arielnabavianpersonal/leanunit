@@ -1,6 +1,6 @@
-import NoUnit
+import LeanUnit
 
-open Lean NoUnit
+open Lean LeanUnit
 
 namespace Model.Interrupt
 

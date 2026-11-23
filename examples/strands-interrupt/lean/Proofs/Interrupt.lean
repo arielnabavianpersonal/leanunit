@@ -1,6 +1,6 @@
 import Laws.Interrupt
 
-open NoUnit Model.Interrupt
+open LeanUnit Model.Interrupt
 
 namespace Proofs.Interrupt
 

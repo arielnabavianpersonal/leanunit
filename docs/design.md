@@ -1,10 +1,10 @@
-# NoUnit design
+# LeanUnit design
 
 Status: approved in chat on 2026-11-22. This document describes version 1.
 
 ## Purpose
 
-NoUnit replaces hand-written unit tests for pure logic with Lean proofs.
+LeanUnit replaces hand-written unit tests for pure logic with Lean proofs.
 A lock file records the laws that a human approved.
 The build fails when a change breaks a law.
 An agent repairs the proofs and writes drafts of new laws.
@@ -26,14 +26,14 @@ A human approves each new or changed law.
 
 | Path | Owner | Rule |
 |---|---|---|
-| `Laws/` | Human | The agent can write a draft law. Only `nounit approve` makes the law valid. |
+| `Laws/` | Human | The agent can write a draft law. Only `leanunit approve` makes the law valid. |
 | `Model/`, `Proofs/`, `Gen/` | Agent | The agent can change these files. Lean and conformance verify them. |
-| `nounit.lock` | Human | Only `nounit approve` writes this file. |
-| `nounit.toml` and the code | Team | `nounit fix` cannot change them. |
+| `leanunit.lock` | Human | Only `leanunit approve` writes this file. |
+| `leanunit.toml` and the code | Team | `leanunit fix` cannot change them. |
 
 ## The lock file
 
-`nounit.lock` is JSON, like `package-lock.json`.
+`leanunit.lock` is JSON, like `package-lock.json`.
 It records the Lean toolchain and one entry for each approved law.
 
 ```json
@@ -54,9 +54,9 @@ It records the Lean toolchain and one entry for each approved law.
 ## The statement hash
 
 The hash covers all the parts that give a law its meaning.
-NoUnit follows each constant that the law uses.
+LeanUnit follows each constant that the law uses.
 It stops at mirrored functions, because conformance ties them to the code.
-It also stops at constants from Lean, Std, and NoUnit.
+It also stops at constants from Lean, Std, and LeanUnit.
 
 The hash includes the type and the value of all other constants.
 Thus, a change to a helper that a law uses changes the hash of the law.
@@ -64,11 +64,11 @@ The mirror targets that the law uses are also part of the hash.
 
 ## Commands
 
-### `nounit init`
+### `leanunit init`
 
-This command makes the Lean project, `nounit.toml`, and an empty lock.
+This command makes the Lean project, `leanunit.toml`, and an empty lock.
 
-### `nounit check`
+### `leanunit check`
 
 This command is the build step. It does these steps:
 
@@ -88,16 +88,16 @@ The command passes only when all these conditions are true:
 - The samples execute each line of each mirrored code function.
 - Each function in the `cover` list has a mirror, and a law uses each mirror.
 
-### `nounit approve`
+### `leanunit approve`
 
-`nounit approve <law>...` or `nounit approve --all` writes the current hashes into the lock.
+`leanunit approve <law>...` or `leanunit approve --all` writes the current hashes into the lock.
 It records the git user as the approver.
-It stops with an error when the environment variable `NOUNIT_AGENT` is set.
+It stops with an error when the environment variable `LEANUNIT_AGENT` is set.
 
-### `nounit fix`
+### `leanunit fix`
 
 1. It runs the check. If the check passes, the command stops.
-2. It starts the agent command from `nounit.toml`. On stdin, it sends the report, the uncommitted diff of the code, and the `--intent` text.
+2. It starts the agent command from `leanunit.toml`. On stdin, it sends the report, the uncommitted diff of the code, and the `--intent` text.
 3. It restores each protected file that the agent changed.
 4. It runs the check again and shows the result and the diagnosis of the agent.
 
@@ -108,12 +108,41 @@ The agent puts each failure into one of these classes:
 - A law has a refutation: the agent reports the counterexample.
 - Code has no law: the agent writes a model, generators, draft laws, and proofs.
 
+## Version 0.2: one platform for each kind of user
+
+LeanUnit works like a unit test framework. A human, a personal agent, a workspace agent, or a CI job uses the same commands.
+The repository owner can automate the repair with `leanunit fix`. One designated agent is not necessary.
+LeanUnit has no flags that are specific to one CI service or one code host.
+
+### `leanunit coverage`
+
+This command runs the same steps as `leanunit check`.
+For each target, it shows the mirror, the laws that use the mirror, and the lines that the samples executed.
+
+### `leanunit new`
+
+This command reads the type hints of a Python target through the runner.
+It writes Lean structures for the dataclasses, `Sample` instances for these structures, and one stub mirror for each function.
+Each stub raises `NotImplementedError`, so the first check shows the real output of each function as a `mismatch`.
+The command skips functions in the `exclude` list, dunder methods, and functions that the class source does not contain.
+
+### `leanunit guide`
+
+This command shows the guide for humans and agents. `leanunit guide --write` writes the guide to `LEANUNIT.md`.
+It also adds a pointer to `LEANUNIT.md` in `AGENTS.md`, and in `CLAUDE.md` if that file exists.
+`leanunit init` writes these files too. The prompt of `leanunit fix` starts with the same guide.
+
+### Exit codes
+
+`leanunit check` and `leanunit fix` exit with 0 when the check passes, and with 1 when work remains for an agent or a developer.
+They exit with 3 when only a human can clear the findings, for example an approval. A usage or configuration error gives 2.
+
 ## Conformance protocol
 
 The Lean sampler writes one JSON line for each sample, with `target`, `args`, and `expected`.
 The runner reads `target` and `args`, calls the function, and writes the outcome.
 After the last sample, the runner writes the line coverage.
-NoUnit compares the expected outcome and the actual outcome as JSON, with object keys in any order.
+LeanUnit compares the expected outcome and the actual outcome as JSON, with object keys in any order.
 
 An outcome has one of these two forms:
 
@@ -135,7 +164,7 @@ The Python runner converts JSON to Python values from the type hints:
 
 - Version 1 supports Python only. TypeScript is next, with the same protocol and a new runner.
 - Version 1 supports pure logic only. It does not support I/O, async code, threads, floats, or callbacks.
-- Version 1 does not shrink a failure. The sample size starts small and increases, and NoUnit shows the smallest failure.
+- Version 1 does not shrink a failure. The sample size starts small and increases, and LeanUnit shows the smallest failure.
 - Conformance is random testing. A model can differ from the code on inputs that the samples do not include. The line coverage rule decreases this risk.
 
 ## First target
@@ -151,7 +180,7 @@ The first laws are:
 - A successful `resume` stores no `null` response.
 - Each change to the state increments the version. This law is false for the current code.
 
-## Tests for NoUnit
+## Tests for LeanUnit
 
 Pytest tests cover the Python core: the lock, the codec, the runner, line coverage, the check report, `approve`, and the file guard in `fix`.
-An integration test runs `nounit check` on the example when `lake` is available.
+An integration test runs `leanunit check` on the example when `lake` is available.

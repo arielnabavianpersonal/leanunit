@@ -1,9 +1,9 @@
 import pytest
 
-from nounit.check import run_check
-from nounit.lean import ForbiddenInfo, LeanError, ProofInfo, Sample
-from nounit.lock import LawApproval, Lock, save_lock
-from nounit.report import LawState, LawStatus, Owner
+from leanunit.check import run_check
+from leanunit.lean import ForbiddenInfo, LeanError, ProofInfo, Sample
+from leanunit.lock import LawApproval, Lock, save_lock
+from leanunit.report import LawState, LawStatus, Owner, TargetStatus
 from tests.fakes import MIRROR, SAMPLES, FakeLean, audit, law, make_config
 from tests.sample_code import write_sample_module
 
@@ -125,3 +125,24 @@ def test_should_keep_the_law_findings_when_the_sampler_fails(config):
     report = run_check(config, FakeLean(audit(law(proofs=())), sample_error=LeanError("sampler", "no Sample")))
 
     assert kinds(report) == ["lean_error", "open_law"]
+
+
+def test_should_list_coverage_rows_for_each_target(config):
+    config = make_config(config.root, cover=("sample_mod:double", "sample_mod:Box"), exclude=("sample_mod:Box.make",))
+    approve(config, law())
+
+    report = run_check(config, FakeLean(audit(law()), samples=SAMPLES[:1]))
+
+    rows = {row.target: row for row in report.coverage}
+    assert rows["sample_mod:double"].status is TargetStatus.COVERED
+    assert (rows["sample_mod:double"].lines, rows["sample_mod:double"].executed) == (3, 2)
+    assert rows["sample_mod:Box.add"].status is TargetStatus.NO_MIRROR
+    assert rows["sample_mod:Box.make"].status is TargetStatus.EXCLUDED
+
+
+def test_should_mark_a_mirror_without_laws(config):
+    approve(config, law(covers=()))
+
+    report = run_check(config, FakeLean(audit(law(covers=()))))
+
+    assert [row.status for row in report.coverage] == [TargetStatus.NO_LAW]

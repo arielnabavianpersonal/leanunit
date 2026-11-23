@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from nounit.config import Config
-from nounit.lean import Audit, ForbiddenInfo, LawInfo, LeanError, MirrorInfo, ProofInfo, Sample
+from leanunit.config import Config
+from leanunit.lean import Audit, ForbiddenInfo, LawInfo, LeanError, MirrorInfo, ProofInfo, Sample
 
 PROVED = ProofInfo(name="Proofs.double_positive_holds", axioms=("propext",))
 MIRROR = MirrorInfo(name="Model.double", module="Model.Main", target="sample_mod:double", arity=1)

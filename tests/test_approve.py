@@ -1,7 +1,7 @@
 import pytest
 
-from nounit.approve import ApproveError, run_approve
-from nounit.lock import LawApproval, Lock, load_lock, save_lock
+from leanunit.approve import ApproveError, run_approve
+from leanunit.lock import LawApproval, Lock, load_lock, save_lock
 from tests.fakes import FakeLean, audit, law, make_config
 
 TODAY = "2026-11-22"
@@ -45,7 +45,7 @@ def test_should_remove_a_law_from_the_lock_when_it_is_gone(config):
 
 def test_should_refuse_when_an_agent_starts_it(config):
     with pytest.raises(ApproveError, match="for humans"):
-        approve(config, approve_all=True, environ={"NOUNIT_AGENT": "1"})
+        approve(config, approve_all=True, environ={"LEANUNIT_AGENT": "1"})
     assert not config.lock_path.exists()
 
 

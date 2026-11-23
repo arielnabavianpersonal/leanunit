@@ -2,11 +2,11 @@ import sys
 
 import pytest
 
-from nounit.config import DEFAULT_SAMPLES, ConfigError, load_config
+from leanunit.config import DEFAULT_SAMPLES, ConfigError, load_config
 
 
 def write(tmp_path, text):
-    (tmp_path / "nounit.toml").write_text(text)
+    (tmp_path / "leanunit.toml").write_text(text)
     return tmp_path
 
 
@@ -18,7 +18,7 @@ def test_should_use_defaults_when_only_cover_is_set(tmp_path):
     assert config.samples == DEFAULT_SAMPLES
     assert config.lean_project == tmp_path / "lean"
     assert config.agent_command == ()
-    assert config.lock_path == tmp_path / "nounit.lock"
+    assert config.lock_path == tmp_path / "leanunit.lock"
 
 
 def test_should_read_every_section_when_all_are_set(tmp_path):
@@ -51,7 +51,7 @@ timeout_seconds = 60
 
 
 def test_should_raise_when_the_file_is_missing(tmp_path):
-    with pytest.raises(ConfigError, match="nounit init"):
+    with pytest.raises(ConfigError, match="leanunit init"):
         load_config(tmp_path)
 
 
