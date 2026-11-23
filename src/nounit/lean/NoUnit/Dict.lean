@@ -69,6 +69,49 @@ theorem get?_filter {d : Dict α} {keep : String → α → Bool} {key : String}
     (h : (d.filter keep).get? key = some value) : keep key value = true :=
   lookup_filter d.entries h
 
+private theorem lookup_cons_eq_ite {k k' : String} {v : α} {rest : List (String × α)} :
+    ((k', v) :: rest).lookup k = if k = k' then some v else rest.lookup k := by
+  by_cases h : k = k'
+  · subst h
+    simp
+  · simp [List.lookup_cons, beq_false_of_ne h, h]
+
+private theorem lookup_map_replace {key k : String} {value : α} :
+    ∀ entries : List (String × α),
+      (entries.map fun (k', v) => if k' == key then (k', value) else (k', v)).lookup k =
+        if k = key then (entries.lookup k).map fun _ => value else entries.lookup k
+  | [] => by simp
+  | (k', v) :: rest => by
+    have ih := lookup_map_replace (key := key) (k := k) (value := value) rest
+    by_cases hk' : k' = key <;> by_cases hk : k = k' <;> by_cases hkey : k = key <;>
+      simp_all [lookup_cons_eq_ite]
+
+theorem get?_insert {d : Dict α} {key k : String} {value : α} :
+    (d.insert key value).get? k = if k = key then some value else d.get? k := by
+  obtain ⟨entries⟩ := d
+  unfold insert get? contains
+  by_cases hcontains : entries.any (·.1 == key) = true
+  · simp only [hcontains, ↓reduceIte, lookup_map_replace]
+    by_cases hk : k = key
+    · subst hk
+      cases hfound : entries.lookup k with
+      | none =>
+        obtain ⟨p, hp, hpk⟩ := List.any_eq_true.mp hcontains
+        have hmiss := List.lookup_eq_none_iff.mp hfound p hp
+        simp_all
+      | some found => simp
+    · simp [hk]
+  · simp only [hcontains, Bool.false_eq_true, ↓reduceIte, List.lookup_append, lookup_cons_eq_ite,
+      List.lookup_nil]
+    by_cases hk : k = key
+    · subst hk
+      have hnone : entries.lookup k = none := by
+        refine List.lookup_eq_none_iff.mpr fun p hp => ?_
+        have hother : p.1 ≠ k := fun hpk => hcontains (List.any_eq_true.mpr ⟨p, hp, by simp [hpk]⟩)
+        simpa using hother.symm
+      simp [hnone]
+    · simp [hk, Option.or_none]
+
 end Dict
 
 instance {α : Type} [ToJson α] : ToJson (Dict α) :=
