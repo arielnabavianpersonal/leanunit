@@ -116,3 +116,16 @@ def test_should_send_the_intent_and_the_code_diff_to_the_agent(project):
 
     assert "I removed the guard on purpose." in prompt
     assert "+changed code" in prompt
+
+
+def test_should_restore_the_nounit_library_when_the_agent_edits_it(project, monkeypatch, tmp_path_factory):
+    library = tmp_path_factory.mktemp("library")
+    (library / "NoUnit.lean").write_text("trusted")
+    monkeypatch.setattr("nounit.fix.NOUNIT_LEAN", library)
+    script = project.root / "agent.py"
+    script.write_text(f"from pathlib import Path\nPath({str(library / 'NoUnit.lean')!r}).write_text('weakened')\n")
+
+    result = run_fix(project, check=SequenceCheck(FAILED, PASSED))
+
+    assert (library / "NoUnit.lean").read_text() == "trusted"
+    assert str(library / "NoUnit.lean") in result.restored

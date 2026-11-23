@@ -12,6 +12,7 @@ from nounit.approve import AGENT_ENV
 from nounit.check import run_check
 from nounit.config import CONFIG_FILE, Config
 from nounit.report import Owner, Report
+from nounit.scaffold import NOUNIT_LEAN
 
 AGENT_GUIDE = Path(__file__).parent / "AGENT.md"
 DIAGNOSIS_FILE = Path(".nounit") / "diagnosis.md"
@@ -124,7 +125,11 @@ def restore(before: Snapshot, after_paths: list[Path]) -> list[Path]:
 
 def _protected_paths(config: Config) -> list[Path]:
     fixed = [config.root / CONFIG_FILE, config.lock_path, *(config.lean_project / name for name in LEAN_PROTECTED_FILES)]
-    return sorted({*fixed, *_python_files(config.source_root, config.lean_project)})
+    return sorted({*fixed, *_python_files(config.source_root, config.lean_project), *_library_files(NOUNIT_LEAN)})
+
+
+def _library_files(library: Path) -> list[Path]:
+    return [path for path in library.rglob("*.lean") if ".lake" not in path.parts]
 
 
 def _python_files(source_root: Path, lean_project: Path) -> list[Path]:
