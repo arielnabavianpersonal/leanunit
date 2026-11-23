@@ -121,7 +121,7 @@ For each target, it shows the mirror, the laws that use the mirror, and the line
 
 ### `leanunit new`
 
-This command reads the type hints of a Python target through the runner.
+This command reads the types of a target. For Python, the runner reads the type hints. For TypeScript and JavaScript, `node_describe.mjs` reads the types.
 It writes Lean structures for the dataclasses, `Sample` instances for these structures, and one stub mirror for each function.
 Each stub raises `NotImplementedError`, so the first check shows the real output of each function as a `mismatch`.
 The command skips functions in the `exclude` list, dunder methods, and functions that the class source does not contain.

@@ -49,7 +49,7 @@ A human approves each law. Anyone can write the models, the generators, and the 
 | `missing_lines` | Change the generators in `lean/Gen/`, so that the samples execute the missing lines. |
 | `uncovered_code` | Run `leanunit new` for the code, then complete the model. |
 | `unused_mirror` | Write a draft law that uses the mirror, and prove it. |
-| `harness_error` | Correct the model types, so that their JSON form agrees with the Python types. |
+| `harness_error` | Correct the model types, so that their JSON form agrees with the types in the code. |
 | `lean_error` | Correct the Lean error in the log. |
 | `unapproved_law`, `changed_law`, `removed_law`, `toolchain_changed`, `target_error` | A human must do this step. |
 

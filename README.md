@@ -136,7 +136,7 @@ To let LeanUnit start an agent for you, set a command in the `[agent]` table of 
 |---|---|
 | `leanunit check` | Verifies the laws, the proofs, the conformance, and the coverage. Add `--json` for a report that a program can read. |
 | `leanunit coverage` | Shows each covered function, its mirror, its laws, and the lines that the samples executed. |
-| `leanunit new <module:Qualname>` | Writes Lean types, `Sample` generators, and a stub mirror for each function, from the Python type hints. |
+| `leanunit new <module:Qualname>` | Writes Lean types, `Sample` generators, and a stub mirror for each function, from the types in the code. |
 | `leanunit approve <law>...` | Records the current statement of each law in the lock. Short names are permitted. |
 | `leanunit approve --all` | Approves all laws, and removes laws that are gone. |
 | `leanunit fix` | Starts the configured agent when the check fails. Then it restores the protected files and checks again. |
@@ -160,8 +160,8 @@ To let LeanUnit start an agent for you, set a command in the `[agent]` table of 
 - Each law has a proof, and no law has a refutation.
 - No proof uses `sorry` or an axiom other than `propext`, `Classical.choice`, and `Quot.sound`.
 - No definition that a law or a mirror uses has `implemented_by`, `extern`, `unsafe`, or `partial`.
-- Each mirror gives the same JSON output as its Python function on all samples.
-- The samples execute each line of each mirrored Python function.
+- Each mirror gives the same JSON output as its code function on all samples.
+- The samples execute each line of each mirrored code function.
 - Each function in the `cover` list has a mirror, and a law uses each mirror.
 
 ## The lock file
@@ -173,7 +173,7 @@ Thus, an agent can repair a proof without approval, but it cannot weaken a law w
 
 ## Write a model
 
-A model function mirrors one Python function or method.
+A model function mirrors one function or method of the code.
 For a method, the first argument is the object, and the result is a `LeanUnit.Outcome`:
 
 ```lean
@@ -184,8 +184,8 @@ def activate (s : State) : Outcome State Unit :=
 
 - `Outcome.ok self ret` is a normal return. `Outcome.raise "KeyError" self` is an exception.
 - `LeanUnit.Val` holds any JSON value, for example a field of type `Any`.
-- `LeanUnit.Dict α` is a Python `dict[str, T]`.
-- The JSON form of each model type must agree with the Python value. Use field names that agree with the Python names.
+- `LeanUnit.Dict α` is a Python `dict[str, T]` or a TypeScript `Record<string, T>`.
+- The JSON form of each model type must agree with the value in the code. Use the field names of the code.
 
 ## Example
 
