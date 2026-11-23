@@ -70,3 +70,10 @@ def test_should_say_the_next_steps_after_new(project, monkeypatch, capsys):
 
     assert cli.main(["--root", str(project), "new", "pkg.mod:Other"]) == cli.EXIT_OK
     assert 'add "pkg.mod:Other" to the cover list' in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("count, verdict", [(1, "FAILED (1 finding)"), (2, "FAILED (2 findings)")])
+def test_should_count_findings_in_the_verdict(count, verdict):
+    report = Report(findings=tuple(Finding(FindingKind.OPEN_LAW, f"Laws.{index}", "no proof") for index in range(count)))
+
+    assert report.render().splitlines()[0] == f"LeanUnit check: {verdict}"
