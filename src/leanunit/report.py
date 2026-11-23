@@ -133,7 +133,8 @@ class Report:
         return json.dumps(self.to_dict(), indent=2)
 
     def render(self) -> str:
-        verdict = "PASSED" if self.passed else f"FAILED ({len(self.findings)} findings)"
+        count = len(self.findings)
+        verdict = "PASSED" if self.passed else f"FAILED ({count} finding{'' if count == 1 else 's'})"
         lines = [f"LeanUnit check: {verdict}", "", f"Laws ({len(self.laws)}):"]
         lines += [
             f"  {law.state.value:<8} {'approved' if law.approved else 'NOT approved':<13} {law.name}" for law in self.laws

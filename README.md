@@ -1,16 +1,17 @@
-![LeanUnit: delete your unit tests](docs/images/hero.png)
+<h1 align="center">LeanUnit</h1>
 
-# LeanUnit
+<p align="center">Agent-first unit tests. Your agent proves laws about your code in Lean.</p>
 
-LeanUnit replaces hand-written unit tests with Lean proofs.
-A lock file records the laws that a human approved, as `package-lock.json` records versions.
-The build fails when a change breaks a law.
-A human, a personal agent, a workspace agent, or a CI job can then repair the proofs with the same commands.
+<p align="center"><img src="docs/images/hero.gif" width="720" alt="Two unit tests pass, but LeanUnit refutes a law with the input that breaks it, then proves the law after the fix"></p>
+
+LeanUnit replaces hand-written unit tests with Lean proofs that your agent writes.
+You approve the laws. A lock file records each approved law, and the build fails when a change breaks a law.
+Your coding agent, a workspace agent, or a CI job can then repair the proofs with the same commands.
 
 ## How it works
 
 You approve **laws**. A law is a Lean statement that your code must obey, for example "an inactive state never saves an invocation-scoped approval".
-A human or any agent writes the rest:
+Your agent writes the rest:
 
 - a **model**, which is a copy of the logic of your code in Lean
 - **generators**, which make random inputs for the model
@@ -23,6 +24,8 @@ This comparison is the conformance step. It ties the proofs to the code that you
 ## LeanUnit and unit tests
 
 Unit tests verify the inputs that you select. A LeanUnit law states a property for each input.
+
+<p align="center"><img src="docs/images/points.png" width="720" alt="Unit tests check five inputs and miss the bug input between them, and a LeanUnit law checks every input and catches it"></p>
 
 This function has a bug:
 
@@ -52,7 +55,7 @@ def test_unknown_id_raises():
 But the input `[("a", "yes"), ("missing", "x")]` writes `"yes"`, then raises `KeyError`, and does not increment the version.
 No test uses this input, so no test fails.
 
-In LeanUnit, a human approves one law:
+In LeanUnit, you approve one law:
 
 ```lean
 @[law] def bump_on_change : Prop :=
@@ -68,7 +71,7 @@ The corrected code validates all the answers before it writes. For that code, th
 | The claim | The output is correct for the selected inputs. | The law is true for each input. |
 | The inputs | You select them. | A failure shows an input that you did not select. |
 | The bug above | Not found | Found, with the input that causes it |
-| An agent changes the check to make it pass | The tests pass, and nobody sees the change. | `leanunit check` fails until a human approves the changed law. |
+| An agent changes the check to make it pass | The tests pass, and nobody sees the change. | `leanunit check` fails until you approve the changed law. |
 | The link to the code | Direct | LeanUnit compares the model with the code on 2,400 random inputs. |
 
 The proof is about the Lean model. Conformance ties the model to your code only on the sampled inputs.
@@ -92,11 +95,10 @@ uv tool install --editable /path/to/leanunit
 ## Quick start
 
 1. Make the files: `leanunit init --source-root src --cover mypackage.module:MyClass`.
-2. Write the Lean types and stub mirrors: `leanunit new mypackage.module:MyClass`.
-3. Give `LEANUNIT.md` to your agent, or read it yourself. It tells how to complete the models, write draft laws, and prove them.
-4. Run `leanunit check` and `leanunit coverage` until only approvals are pending.
-5. Read each draft law in `lean/Laws/`, and approve the laws that you agree with: `leanunit approve <law>`.
-6. Add `leanunit check` to your build or CI.
+2. Tell your agent to read `LEANUNIT.md` and to cover `mypackage.module:MyClass`.
+3. The agent runs `leanunit new`, completes the models, writes draft laws, and proves them. It stops when only approvals are pending.
+4. Read each draft law in `lean/Laws/`, and approve the laws that you agree with: `leanunit approve <law>`.
+5. Add `leanunit check` to your build or CI.
 
 To let LeanUnit start an agent for you, set a command in the `[agent]` table of `leanunit.toml`, and run `leanunit fix`.
 
@@ -105,12 +107,12 @@ To let LeanUnit start an agent for you, set a command in the `[agent]` table of 
 | Path | Owner | Contents |
 |---|---|---|
 | `leanunit.toml` | Team | The code to cover, the Lean project, the sample count, and the agent command. |
-| `leanunit.lock` | Human | The approved laws. Only `leanunit approve` writes this file. |
-| `lean/Laws/` | Human | The laws. An agent can write drafts. |
+| `leanunit.lock` | You | The approved laws. Only `leanunit approve` writes this file. |
+| `lean/Laws/` | You | The laws. An agent can write drafts. |
 | `lean/Model/` | Agent | The model functions, each with `@[mirror "module:Qualname"]`. |
 | `lean/Gen/` | Agent | The `Sample` instances for the model types. |
 | `lean/Proofs/` | Agent | One theorem for each law, or a refutation with `¬`. |
-| `LEANUNIT.md` | LeanUnit | The guide for humans and agents. `leanunit guide --write` updates it. |
+| `LEANUNIT.md` | LeanUnit | The guide for agents. `leanunit guide --write` updates it. |
 | `AGENTS.md` | Team | LeanUnit adds one pointer to `LEANUNIT.md`, and adds the same pointer to `CLAUDE.md` if that file exists. |
 
 ## Commands
@@ -133,7 +135,7 @@ To let LeanUnit start an agent for you, set a command in the `[agent]` table of 
 | 0 | The check passed. |
 | 1 | The check found work for an agent or a developer. |
 | 2 | The command or the configuration is wrong. |
-| 3 | Only a human can clear the findings, for example by an approval. |
+| 3 | Only your approval can clear the findings. |
 
 ## What the check verifies
 
@@ -177,7 +179,9 @@ It has 10 laws. LeanUnit proves 9 of them, and it refutes 1 of them.
 The refuted law shows a real bug: `resume` can change the state without an increase of the version.
 Refer to `examples/strands-interrupt/README.md`.
 
-In `docs/demo.md`, a developer corrects the bug, and the agent updates the model. Then all 14 laws pass.
+After the bug fix in `docs/demo.md`, the agent updates the model, and all 14 laws pass:
+
+<p align="center"><img src="docs/images/terminal.png" width="720" alt="leanunit check fails with the refuted law, then passes after the fix with 9 of 9 targets covered"></p>
 
 ## Limits
 
