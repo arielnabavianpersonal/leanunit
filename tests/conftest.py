@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from nounit.lean import find_lake
+from leanunit.lean import find_lake
 
 REPO = Path(__file__).parents[1]
-NOUNIT_LEAN = REPO / "src" / "nounit" / "lean"
+LEANUNIT_LEAN = REPO / "src" / "leanunit" / "lean"
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
@@ -23,9 +23,9 @@ def pytest_collection_modifyitems(config, items):
 def copy_lean_project(tmp_path):
     def copy(name: str) -> Path:
         target = tmp_path / name
-        shutil.copytree(FIXTURES / name, target, ignore=shutil.ignore_patterns(".lake", "NoUnitGenerated", "lake-manifest.json"))
+        shutil.copytree(FIXTURES / name, target, ignore=shutil.ignore_patterns(".lake", "LeanUnitGenerated", "lake-manifest.json"))
         lakefile = target / "lakefile.toml"
-        lakefile.write_text(lakefile.read_text().replace('path = "../../../src/nounit/lean"', f'path = "{NOUNIT_LEAN}"'))
+        lakefile.write_text(lakefile.read_text().replace('path = "../../../src/leanunit/lean"', f'path = "{LEANUNIT_LEAN}"'))
         return target
 
     return copy

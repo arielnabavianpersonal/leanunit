@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from nounit.approve import run_approve
-from nounit.check import run_check
-from nounit.config import load_config
-from tests.conftest import NOUNIT_LEAN
+from leanunit.approve import run_approve
+from leanunit.check import run_check
+from leanunit.config import load_config
+from tests.conftest import LEANUNIT_LEAN
 
 pytestmark = pytest.mark.lean
 
@@ -17,9 +17,9 @@ REFUTED = "Laws.Interrupt.resume_bumps_version_on_change"
 @pytest.fixture
 def example(tmp_path):
     target = tmp_path / "strands-interrupt"
-    shutil.copytree(EXAMPLE, target, ignore=shutil.ignore_patterns(".lake", "NoUnitGenerated", "lake-manifest.json", ".nounit"))
+    shutil.copytree(EXAMPLE, target, ignore=shutil.ignore_patterns(".lake", "LeanUnitGenerated", "lake-manifest.json", ".leanunit"))
     lakefile = target / "lean" / "lakefile.toml"
-    lakefile.write_text(lakefile.read_text().replace('path = "../../../src/nounit/lean"', f'path = "{NOUNIT_LEAN}"'))
+    lakefile.write_text(lakefile.read_text().replace('path = "../../../src/leanunit/lean"', f'path = "{LEANUNIT_LEAN}"'))
     return load_config(target)
 
 

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from nounit.lean import Audit, LawInfo, LeanProject
+from leanunit.lean import Audit, LawInfo, LeanProject
 
 pytestmark = pytest.mark.lean
 

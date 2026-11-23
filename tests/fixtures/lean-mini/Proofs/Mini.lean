@@ -1,6 +1,6 @@
 import Laws.Mini
 
-open NoUnit Model.Mini Laws.Mini
+open LeanUnit Model.Mini Laws.Mini
 
 namespace Proofs.Mini
 

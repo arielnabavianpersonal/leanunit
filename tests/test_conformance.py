@@ -2,9 +2,9 @@ import sys
 
 import pytest
 
-from nounit.config import Config
-from nounit.conformance import run_conformance, same
-from nounit.lean import Sample
+from leanunit.config import Config
+from leanunit.conformance import run_conformance, same
+from leanunit.lean import Sample
 from tests.sample_code import write_sample_module
 
 

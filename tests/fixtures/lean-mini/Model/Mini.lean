@@ -1,6 +1,6 @@
-import NoUnit
+import LeanUnit
 
-open NoUnit
+open LeanUnit
 
 namespace Model.Mini
 

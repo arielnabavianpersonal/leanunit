@@ -4,10 +4,10 @@ This example covers the `_InterruptState` class of the Strands Agents SDK.
 The file `src/strands/interrupt.py` is a copy from `strands-agents/harness-sdk` at commit `d6c5fae7`, with no changes.
 The Strands Agents SDK has the Apache 2.0 license.
 
-## What NoUnit verifies
+## What LeanUnit verifies
 
 The model in `lean/Model/Interrupt.lean` mirrors 8 methods. Version 1 does not cover `from_dict`.
-On each check, NoUnit compares the model and the real code on 2,400 random samples.
+On each check, LeanUnit compares the model and the real code on 2,400 random samples.
 The samples execute each line of the 8 methods.
 
 ## The laws
@@ -57,10 +57,10 @@ The Lean refutation is `resume_bumps_version_on_change_refuted` in `lean/Proofs/
 
 ## Run the example
 
-1. Install NoUnit and elan. Refer to the README at the root of the repository.
-2. Run `nounit --root examples/strands-interrupt check`. All 10 laws show as not approved.
+1. Install LeanUnit and elan. Refer to the README at the root of the repository.
+2. Run `leanunit --root examples/strands-interrupt check`. All 10 laws show as not approved.
 3. Read the laws in `lean/Laws/Interrupt.lean`.
-4. Run `nounit --root examples/strands-interrupt approve --all`.
+4. Run `leanunit --root examples/strands-interrupt approve --all`.
 5. Run the check again. Only the refuted law stays.
 
 To clear the last finding, a human must decide: correct `resume`, or change the law.

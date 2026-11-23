@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from nounit.conformance import RUNNER_SCRIPT
+from leanunit.conformance import RUNNER_SCRIPT
 from tests.sample_code import write_sample_module
 
 EMPTY_BOX = {"items": {}, "tags": [], "note": None, "_count": 0}
@@ -90,4 +90,7 @@ def test_should_miss_no_lines_when_every_branch_runs(source_root):
         {"target": "sample_mod:Box.add", "args": [{**EMPTY_BOX, "items": {"k": {"name": "k"}}}, "k", 1]},
     )
 
-    assert coverage == {"sample_mod:double": {"missing": []}, "sample_mod:Box.add": {"missing": []}}
+    assert coverage == {
+        "sample_mod:double": {"lines": 3, "missing": []},
+        "sample_mod:Box.add": {"lines": 5, "missing": []},
+    }
