@@ -44,7 +44,7 @@ It records the Lean toolchain and one entry for each approved law.
     "Laws.Interrupt.no_standing_approval": {
       "statement": "sha256:9f2c...",
       "covers": ["strands.interrupt:_InterruptState.to_dict"],
-      "approvedBy": "arielnab@amazon.com",
+      "approvedBy": "dev@example.com",
       "approvedAt": "2026-11-22"
     }
   }
