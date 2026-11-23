@@ -36,77 +36,77 @@
 
 **Files:** `src/nounit/lean/lakefile.toml`, `lean-toolchain`, `NoUnit.lean`, `NoUnit/{Attr,Val,Dict,Outcome,Gen,Mirror,Audit}.lean`.
 
-- [ ] `Attr`: the tag attribute `@[law]` and the attribute `@[mirror "module:Qualname"]` with a string parameter.
-- [ ] `Val`: a JSON value type with `DecidableEq`, `ToJson`, and `FromJson`. It has no floats.
-- [ ] `Dict α`: a list of key and value pairs with unique keys. It has `empty`, `get?`, `insert`, `filter`, `keys`, and lemmas for `filter` and `insert`. It converts to a JSON object.
-- [ ] `Outcome σ ρ`: `ok self ret` or `raise exc self`, with the JSON forms of the design.
-- [ ] `Gen` and `Sample α`: a random generator with a size, and instances for `Nat`, `Int`, `Bool`, `String`, `List`, `Option`, `Prod`, `Val`, and `Dict`.
-- [ ] `Mirror`: `Mirror.of1` to `Mirror.of4`, and `conformMain mirrors args`, which writes one JSON line for each sample.
-- [ ] `Audit`: the command `#nounit_audit`. It writes one line `NOUNIT_AUDIT <json>` with the laws, proofs, refutations, axioms, hash inputs, covered targets, mirrors, and forbidden constants.
-- [ ] Verify: `lake build` passes in `src/nounit/lean`.
-- [ ] Commit.
+- [x] `Attr`: the tag attribute `@[law]` and the attribute `@[mirror "module:Qualname"]` with a string parameter.
+- [x] `Val`: a JSON value type with `DecidableEq`, `ToJson`, and `FromJson`. It has no floats.
+- [x] `Dict α`: a list of key and value pairs with unique keys. It has `empty`, `get?`, `insert`, `filter`, `keys`, and lemmas for `filter` and `insert`. It converts to a JSON object.
+- [x] `Outcome σ ρ`: `ok self ret` or `raise exc self`, with the JSON forms of the design.
+- [x] `Gen` and `Sample α`: a random generator with a size, and instances for `Nat`, `Int`, `Bool`, `String`, `List`, `Option`, `Prod`, `Val`, and `Dict`.
+- [x] `Mirror`: `Mirror.of1` to `Mirror.of4`, and `conformMain mirrors args`, which writes one JSON line for each sample.
+- [x] `Audit`: the command `#nounit_audit`. It writes one line `NOUNIT_AUDIT <json>` with the laws, proofs, refutations, axioms, hash inputs, covered targets, mirrors, and forbidden constants.
+- [x] Verify: `lake build` passes in `src/nounit/lean`.
+- [x] Commit.
 
 ## Task 2: The audit fixture and its test
 
 **Files:** `tests/fixtures/lean-mini/`, `tests/test_lean_audit.py`.
 
-- [ ] Make a small fixture project. It has these six cases:
+- [x] Make a small fixture project. It has these six cases:
   - a proved law
   - a refuted law
   - a proof with `sorry`
   - a proof with a new axiom
   - a mirror
   - a constant with `@[implemented_by]`
-- [ ] Test that the audit gives the correct status for each law.
-- [ ] Test that the hash changes when a helper of a law changes.
-- [ ] Test that the hash stays the same when a mirrored function changes or when blank lines move the law.
-- [ ] Verify: `uv run pytest tests/test_lean_audit.py` passes.
-- [ ] Commit.
+- [x] Test that the audit gives the correct status for each law.
+- [x] Test that the hash changes when a helper of a law changes.
+- [x] Test that the hash stays the same when a mirrored function changes or when blank lines move the law.
+- [x] Verify: `uv run pytest tests/test_lean_audit.py` passes.
+- [x] Commit.
 
 ## Task 3: Config, lock, and Python code analysis
 
 **Files:** `src/nounit/config.py`, `lock.py`, `pycode.py`, and their tests.
 
-- [ ] Test and write `load_config`. Defaults: the interpreter of NoUnit, 300 samples, seed 1, and no agent.
-- [ ] Test and write the lock. A missing file is an empty lock. `approve` returns a new lock. The file is JSON with sorted keys.
-- [ ] Test and write `methods_of`. A class target gives each method in the class body. A function target gives itself.
-- [ ] Verify: `uv run pytest` passes.
-- [ ] Commit.
+- [x] Test and write `load_config`. Defaults: the interpreter of NoUnit, 300 samples, seed 1, and no agent.
+- [x] Test and write the lock. A missing file is an empty lock. `approve` returns a new lock. The file is JSON with sorted keys.
+- [x] Test and write `methods_of`. A class target gives each method in the class body. A function target gives itself.
+- [x] Verify: `uv run pytest` passes.
+- [x] Commit.
 
 ## Task 4: The Python runner and conformance
 
 **Files:** `src/nounit/runners/python_runner.py`, `conformance.py`, and their tests.
 
-- [ ] Test and write the decoder from type hints, the encoder, and the two outcome forms of the runner.
-- [ ] Test that the runner shows a partial change before an exception, a harness error, and the missing lines.
-- [ ] Test and write `run_conformance`. The comparison is strict, so `true` is not equal to `1`. NoUnit keeps the smallest mismatch for each target.
-- [ ] Verify: `uv run pytest` passes.
-- [ ] Commit.
+- [x] Test and write the decoder from type hints, the encoder, and the two outcome forms of the runner.
+- [x] Test that the runner shows a partial change before an exception, a harness error, and the missing lines.
+- [x] Test and write `run_conformance`. The comparison is strict, so `true` is not equal to `1`. NoUnit keeps the smallest mismatch for each target.
+- [x] Verify: `uv run pytest` passes.
+- [x] Commit.
 
 ## Task 5: Check, approve, fix, init, and the command line
 
 **Files:** `report.py`, `check.py`, `approve.py`, `fix.py`, `scaffold.py`, `cli.py`, `AGENT.md`, and their tests.
 
-- [ ] Test `run_check` with a fake `LeanProject`. Each condition of the design must give its finding.
-- [ ] Test `run_approve`. It writes the hashes and the covered targets, it removes laws that are gone, and it stops when `NOUNIT_AGENT` is set.
-- [ ] Test `run_fix` with a fake agent script. The agent receives the report, the guard restores a protected file, and the second check runs.
-- [ ] Test `init_project`. It writes the files and does not overwrite a file.
-- [ ] Verify: `uv run pytest` passes.
-- [ ] Commit.
+- [x] Test `run_check` with a fake `LeanProject`. Each condition of the design must give its finding.
+- [x] Test `run_approve`. It writes the hashes and the covered targets, it removes laws that are gone, and it stops when `NOUNIT_AGENT` is set.
+- [x] Test `run_fix` with a fake agent script. The agent receives the report, the guard restores a protected file, and the second check runs.
+- [x] Test `init_project`. It writes the files and does not overwrite a file.
+- [x] Verify: `uv run pytest` passes.
+- [x] Commit.
 
 ## Task 6: The example
 
 **Files:** `examples/strands-interrupt/{nounit.toml,nounit.lock,README.md}` and `lean/{Laws,Model,Gen,Proofs}/Interrupt.lean`.
 
-- [ ] Write the model of `activate`, `deactivate`, `end_tool_cycle`, `end_interrupt_cycle`, `resume`, `set_pending_tool_results`, `to_dict`, and `_get_version`.
-- [ ] Write the laws of the design, and one law for each mirror.
-- [ ] Write the generators, the proofs, and the refutation of the version law.
-- [ ] Verify: `nounit check` shows only unapproved laws and the refuted law. In a copy, `nounit approve --all` leaves only the refuted law.
-- [ ] Commit.
+- [x] Write the model of `activate`, `deactivate`, `end_tool_cycle`, `end_interrupt_cycle`, `resume`, `set_pending_tool_results`, `to_dict`, and `_get_version`.
+- [x] Write the laws of the design, and one law for each mirror.
+- [x] Write the generators, the proofs, and the refutation of the version law.
+- [x] Verify: `nounit check` shows only unapproved laws and the refuted law. In a copy, `nounit approve --all` leaves only the refuted law.
+- [x] Commit.
 
 ## Task 7: The agent loop and the documents
 
-- [ ] Change a function in a copy of the example, run `nounit fix` with `claude -p`, and record the result.
-- [ ] Write `README.md`.
-- [ ] Verify: `uv run pytest` passes, with the integration tests.
-- [ ] Commit.
+- [x] Change a function in a copy of the example, run `nounit fix` with `claude -p`, and record the result.
+- [x] Write `README.md`.
+- [x] Verify: `uv run pytest` passes, with the integration tests.
+- [x] Commit.
