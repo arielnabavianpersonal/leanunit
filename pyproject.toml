@@ -1,6 +1,6 @@
 [project]
 name = "leanunit"
-version = "0.2.0"
+version = "0.3.0"
 description = "Agent-first unit tests. Your agent proves laws about your Python code in Lean."
 readme = "README.md"
 license = "Apache-2.0"

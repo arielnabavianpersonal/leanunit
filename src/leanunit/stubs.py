@@ -20,7 +20,7 @@ LEAN_KEYWORDS = frozenset({
     "Type", "universe", "unless", "unsafe", "variable", "where", "with",
 })
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_']*\Z")
-MAX_ARGUMENTS = 4
+MAX_ARGUMENTS = 8
 NOT_IMPLEMENTED = "NotImplementedError"
 DERIVING = "deriving DecidableEq, Repr, ToJson, FromJson"
 
