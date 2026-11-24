@@ -17,6 +17,7 @@ UNSUPPORTED_MEMBERS = (staticmethod, classmethod, property)
 SILENT_STATEMENTS = (ast.Global, ast.Nonlocal)
 PRIMITIVES = {str: "str", int: "int", bool: "bool", float: "float"}
 POSITIONAL = (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+SUPPORTED_PARAMETERS = (*POSITIONAL, inspect.Parameter.KEYWORD_ONLY)
 
 
 class HarnessError(Exception):
@@ -188,12 +189,14 @@ def call(target: Target, args: list[Any], recorder: LineRecorder) -> dict[str, A
         receiver = None
     if len(args) != len(parameters):
         raise HarnessError(f"{target.name} takes {len(parameters)} arguments, but the model sent {len(args)}")
-    decoded = [decode(hints.get(parameter.name, Any), arg) for parameter, arg in zip(parameters, args)]
-    call_args = [receiver, *decoded] if target.owner is not None else decoded
+    decoded = [(parameter, decode(hints.get(parameter.name, Any), arg)) for parameter, arg in zip(parameters, args)]
+    positional = [value for parameter, value in decoded if parameter.kind in POSITIONAL]
+    keyword = {parameter.name: value for parameter, value in decoded if parameter.kind not in POSITIONAL}
+    call_args = [receiver, *positional] if target.owner is not None else positional
     sys.settrace(recorder.trace)
     try:
         with contextlib.redirect_stdout(sys.stderr):
-            result = target.function(*call_args)
+            result = target.function(*call_args, **keyword)
     except Exception as error:
         sys.settrace(None)
         return {"raise": type(error).__name__, "self": encode(receiver)}
@@ -286,9 +289,9 @@ def _describe_function(target: str, function: types.FunctionType, is_method: boo
     parameters = list(inspect.signature(function).parameters.values())
     if is_method:
         parameters = parameters[1:]
-    unsupported = [parameter.name for parameter in parameters if parameter.kind not in POSITIONAL]
+    unsupported = [parameter.name for parameter in parameters if parameter.kind not in SUPPORTED_PARAMETERS]
     if unsupported:
-        raise HarnessError(f"{target} has parameters {unsupported} that are not positional")
+        raise HarnessError(f"{target} has parameters {unsupported} that take a variable number of arguments")
     hints = hints_for(function)
     return {
         "target": target,

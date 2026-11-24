@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from leanunit.conformance import RUNNER_SCRIPT
+from leanunit.languages import PYTHON_RUNNER as RUNNER_SCRIPT
 from tests.sample_code import write_sample_module
 
 EMPTY_BOX = {"items": {}, "tags": [], "note": None, "_count": 0}
@@ -94,3 +94,9 @@ def test_should_miss_no_lines_when_every_branch_runs(source_root):
         "sample_mod:double": {"lines": 3, "missing": []},
         "sample_mod:Box.add": {"lines": 5, "missing": []},
     }
+
+
+def test_should_pass_keyword_only_arguments_by_name(source_root):
+    outcomes, _ = run(source_root, {"target": "sample_mod:window", "args": ["hello", 1, 3, ".", "> "]})
+
+    assert outcomes == [{"self": None, "return": "> el"}]

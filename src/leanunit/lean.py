@@ -12,7 +12,7 @@ PROJECT_ROOTS = ("Laws", "Model", "Proofs", "Gen")
 SAMPLER_IMPORT_ROOTS = ("Model", "Gen")
 GENERATED_DIR = "LeanUnitGenerated"
 AUDIT_MARKER = "LEANUNIT_AUDIT "
-MAX_ARITY = 4
+MAX_ARITY = 8
 DEFAULT_MAX_SIZE = 12
 
 

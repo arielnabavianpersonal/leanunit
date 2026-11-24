@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from leanunit.languages import LANGUAGES, PYTHON, Language
+
 CONFIG_FILE = "leanunit.toml"
 LOCK_FILE = "leanunit.lock"
 DEFAULT_LEAN_PROJECT = "lean"
@@ -23,7 +25,8 @@ class ConfigError(Exception):
 class Config:
     root: Path
     lean_project: Path
-    python: tuple[str, ...]
+    language: Language
+    runtime: tuple[str, ...]
     source_root: Path
     cover: tuple[str, ...]
     exclude: tuple[str, ...]
@@ -45,18 +48,25 @@ def load_config(root: Path) -> Config:
         data = tomllib.loads(path.read_text())
     except tomllib.TOMLDecodeError as error:
         raise ConfigError(f"{path} is not valid TOML: {error}") from error
-    python = _section(data, "python")
+    sections = [name for name in LANGUAGES if name in data]
+    if len(sections) > 1:
+        raise ConfigError(f"{CONFIG_FILE} must have one language table, but it has {', '.join(sections)}")
+    language = LANGUAGES[sections[0]] if sections else PYTHON
+    code = _section(data, language.name)
     lean = _section(data, "lean")
     conformance = _section(data, "conformance")
     agent = _section(data, "agent")
-    cover = _targets(python.get("cover", []), "python.cover")
+    cover = _targets(code.get("cover", []), f"{language.name}.cover")
+    runtime_value = code.get("runtime", code.get("interpreter"))
+    default_runtime = (sys.executable,) if language is PYTHON else language.default_runtime
     return Config(
         root=root,
         lean_project=root / lean.get("project", DEFAULT_LEAN_PROJECT),
-        python=_command(python.get("interpreter", [sys.executable]), "python.interpreter"),
-        source_root=root / python.get("source_root", DEFAULT_SOURCE_ROOT),
+        language=language,
+        runtime=default_runtime if runtime_value is None else _command(runtime_value, f"{language.name}.runtime"),
+        source_root=root / code.get("source_root", DEFAULT_SOURCE_ROOT),
         cover=cover,
-        exclude=_targets(python.get("exclude", []), "python.exclude"),
+        exclude=_targets(code.get("exclude", []), f"{language.name}.exclude"),
         samples=_positive(conformance.get("samples", DEFAULT_SAMPLES), "conformance.samples"),
         seed=int(conformance.get("seed", DEFAULT_SEED)),
         agent_command=_command(agent.get("command", []), "agent.command"),

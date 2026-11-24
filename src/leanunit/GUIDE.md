@@ -49,7 +49,7 @@ A human approves each law. Anyone can write the models, the generators, and the 
 | `missing_lines` | Change the generators in `lean/Gen/`, so that the samples execute the missing lines. |
 | `uncovered_code` | Run `leanunit new` for the code, then complete the model. |
 | `unused_mirror` | Write a draft law that uses the mirror, and prove it. |
-| `harness_error` | Correct the model types, so that their JSON form agrees with the Python types. |
+| `harness_error` | Correct the model types, so that their JSON form agrees with the types in the code. |
 | `lean_error` | Correct the Lean error in the log. |
 | `unapproved_law`, `changed_law`, `removed_law`, `toolchain_changed`, `target_error` | A human must do this step. |
 
@@ -63,6 +63,18 @@ A human approves each law. Anyone can write the models, the generators, and the 
 6. Prove each law in `lean/Proofs/`, or prove that it is false with `¬`.
 7. Run `leanunit coverage` to find the functions that have no laws.
 8. Ask a human to approve the draft laws.
+
+## Targets in each language
+
+The table name in `leanunit.toml` is the language of the code: `[python]`, `[typescript]`, or `[javascript]`.
+
+| Language | Target examples |
+|---|---|
+| Python | `strands.interrupt:_InterruptState` and `strands.interrupt:_InterruptState.resume` |
+| TypeScript or JavaScript | `src/interrupt:InterruptState` and `src/interrupt:InterruptState.resume` |
+
+For TypeScript and JavaScript, the module is the path from `source_root`, without the file extension.
+A TypeScript `number` becomes a Lean `Int`. A field or a parameter without a type becomes `Val`.
 
 ## Rules
 

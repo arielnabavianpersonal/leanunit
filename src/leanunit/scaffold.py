@@ -21,13 +21,13 @@ class InitResult:
     created: tuple[Path, ...]
 
 
-def init_project(root: Path, source_root: str, cover: tuple[str, ...]) -> InitResult:
+def init_project(root: Path, source_root: str, cover: tuple[str, ...], language: str = "python") -> InitResult:
     lean = root / DEFAULT_LEAN_PROJECT
     existing = [path for path in (root / CONFIG_FILE, root / LOCK_FILE, lean) if path.exists()]
     if existing:
         raise InitError(f"LeanUnit does not overwrite files. These already exist: {', '.join(map(str, existing))}")
     files = {
-        root / CONFIG_FILE: _config_text(source_root, cover),
+        root / CONFIG_FILE: _config_text(language, source_root, cover),
         root / LOCK_FILE: lock_to_json(Lock()),
         lean / "lakefile.toml": _lakefile_text(root.name),
         lean / "lean-toolchain": (LEANUNIT_LEAN / "lean-toolchain").read_text(),
@@ -40,10 +40,10 @@ def init_project(root: Path, source_root: str, cover: tuple[str, ...]) -> InitRe
     return InitResult(created=(*files, *gitignore, *write_guide(root)))
 
 
-def _config_text(source_root: str, cover: tuple[str, ...]) -> str:
+def _config_text(language: str, source_root: str, cover: tuple[str, ...]) -> str:
     targets = ", ".join(f'"{target}"' for target in cover)
     return "\n".join([
-        "[python]",
+        f"[{language}]",
         f'source_root = "{source_root}"',
         f"cover = [{targets}]",
         "exclude = []",

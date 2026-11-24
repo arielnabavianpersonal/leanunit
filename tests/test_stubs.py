@@ -3,7 +3,7 @@ import pytest
 from leanunit.check import run_check
 from leanunit.config import load_config
 from leanunit.scaffold import init_project
-from leanunit.stubs import StubError, describe_target, render_files, scaffold_target
+from leanunit.stubs import StubError, describe_target, lean_name, render_files, scaffold_target
 from tests.fakes import make_config
 from tests.sample_code import write_sample_module
 
@@ -61,10 +61,10 @@ def test_should_use_unit_state_for_a_function():
 
 
 def test_should_refuse_a_function_with_too_many_arguments():
-    params = [{"name": f"p{index}", "type": {"kind": "int"}} for index in range(4)]
+    params = [{"name": f"p{index}", "type": {"kind": "int"}} for index in range(8)]
     description = {**DESCRIPTION, "functions": [{**DESCRIPTION["functions"][0], "params": params}]}
 
-    with pytest.raises(StubError, match="supports 1 to 4"):
+    with pytest.raises(StubError, match="supports 1 to 8"):
         render_files("Holder", description)
 
 
@@ -122,3 +122,26 @@ def test_should_build_and_run_the_stubs_without_harness_errors(tmp_path):
     kinds = {finding.kind.label for finding in report.findings}
     assert kinds == {"mismatch", "unused_mirror", "uncovered_code"}
     assert {finding.subject for finding in report.findings if finding.kind.label == "uncovered_code"} == {"sample_mod:Box.make"}
+
+
+def test_should_describe_keyword_only_parameters(config):
+    description = describe_target(config, "sample_mod:window")
+
+    assert [param["name"] for param in description["functions"][0]["params"]] == ["text", "start", "end", "fill", "label"]
+
+
+@pytest.mark.lean
+def test_should_build_and_run_a_five_argument_mirror_without_harness_errors(tmp_path):
+    write_sample_module(tmp_path)
+    init_project(tmp_path, ".", ("sample_mod:window",))
+    config = load_config(tmp_path)
+
+    scaffold_target(config, "sample_mod:window", "Window")
+    report = run_check(config)
+
+    assert {finding.kind.label for finding in report.findings} == {"mismatch", "unused_mirror"}
+
+
+@pytest.mark.parametrize("name", ["prefix", "notation", "mutual", "local"])
+def test_should_escape_lean_command_keywords(name):
+    assert lean_name(name) == f"«{name}»"

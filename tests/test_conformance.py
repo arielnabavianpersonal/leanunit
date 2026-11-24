@@ -3,6 +3,7 @@ import sys
 import pytest
 
 from leanunit.config import Config
+from leanunit.languages import PYTHON
 from leanunit.conformance import run_conformance, same
 from leanunit.lean import Sample
 from tests.sample_code import write_sample_module
@@ -12,7 +13,7 @@ from tests.sample_code import write_sample_module
 def config(tmp_path):
     write_sample_module(tmp_path)
     return Config(
-        root=tmp_path, lean_project=tmp_path / "lean", python=(sys.executable,), source_root=tmp_path,
+        root=tmp_path, lean_project=tmp_path / "lean", language=PYTHON, runtime=(sys.executable,), source_root=tmp_path,
         cover=(), exclude=(), samples=10, seed=1, agent_command=(), agent_timeout_seconds=60,
     )
 
@@ -61,7 +62,7 @@ def test_should_report_a_harness_error_instead_of_a_mismatch(config):
 
 
 def test_should_report_a_harness_error_when_the_interpreter_cannot_start(config):
-    broken = Config(**{**config.__dict__, "python": ("/no/such/python",)})
+    broken = Config(**{**config.__dict__, "runtime": ("/no/such/python",)})
 
     result = run_conformance(broken, [double(2, 4)])
 

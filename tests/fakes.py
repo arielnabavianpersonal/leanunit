@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from leanunit.config import Config
+from leanunit.languages import PYTHON
 from leanunit.lean import Audit, ForbiddenInfo, LawInfo, LeanError, MirrorInfo, ProofInfo, Sample
 
 PROVED = ProofInfo(name="Proofs.double_positive_holds", axioms=("propext",))
@@ -57,7 +58,7 @@ def make_config(root: Path, **overrides) -> Config:
     import sys
 
     values = dict(
-        root=root, lean_project=root / "lean", python=(sys.executable,), source_root=root,
+        root=root, lean_project=root / "lean", language=PYTHON, runtime=(sys.executable,), source_root=root,
         cover=("sample_mod:double",), exclude=(), samples=10, seed=1, agent_command=(), agent_timeout_seconds=60,
     )
     values.update(overrides)

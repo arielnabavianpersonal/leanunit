@@ -51,6 +51,12 @@ def double(n: int) -> int:
 
 def broken() -> object:
     return object()
+
+
+def window(text: str, start: int, *, end: int, fill: str, label: str) -> str:
+    if end < start:
+        raise ValueError("end is before start")
+    return label + text[start:end].ljust(end - start, fill[:1] or " ")
 '''
 
 
