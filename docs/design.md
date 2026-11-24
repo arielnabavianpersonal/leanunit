@@ -148,7 +148,7 @@ They exit with 3 when only a human can clear the findings, for example an approv
 The Lean sampler writes one JSON line for each sample, with `target`, `args`, and `expected`.
 The runner reads `target` and `args`, calls the function, and writes the outcome.
 After the last sample, the runner writes the line coverage.
-LeanUnit compares the expected outcome and the actual outcome as JSON, with object keys in any order.
+LeanUnit compares the expected outcome and the actual outcome as JSON, with object keys in any order and numbers by value.
 
 An outcome has one of these two forms:
 

@@ -93,6 +93,7 @@ A parameter with a default value has the Lean type `Arg α`. The value `.default
 ## Values that JSON does not have
 
 The runners send these values as tagged JSON objects. The Lean helpers make the same JSON.
+LeanUnit compares numbers by value. Thus, the Lean `Int` 70 agrees with the Python float `70.0`.
 
 | Value | JSON | Lean |
 |---|---|---|

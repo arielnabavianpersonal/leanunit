@@ -34,6 +34,8 @@ class ConformanceResult:
 
 
 def same(left: Any, right: Any) -> bool:
+    if _is_number(left) and _is_number(right):
+        return left == right
     if type(left) is not type(right):
         return False
     if isinstance(left, dict):
@@ -87,6 +89,10 @@ def _compare(samples: Sequence[Sample], outcomes: list[dict[str, Any]], coverage
         line_totals=MappingProxyType({target: entry["lines"] for target, entry in sorted(coverage.items())}),
         harness_errors=tuple(errors[:MAX_HARNESS_ERRORS]),
     )
+
+
+def _is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
 def _size(args: list[Any]) -> int:
