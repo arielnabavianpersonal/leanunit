@@ -151,10 +151,10 @@ def _sampler_source(imports: list[str], mirrors: tuple[MirrorInfo, ...]) -> str:
 
 
 def _sampler_entry(mirror: MirrorInfo) -> str:
-    if not 1 <= mirror.arity <= MAX_ARITY:
+    if not 0 <= mirror.arity <= MAX_ARITY:
         raise LeanError(
             "sampler",
-            f"mirror {mirror.name} has {mirror.arity} explicit arguments, but LeanUnit supports 1 to {MAX_ARITY}",
+            f"mirror {mirror.name} has {mirror.arity} explicit arguments, but LeanUnit supports 0 to {MAX_ARITY}",
         )
     return f"  LeanUnit.Mirror.of{mirror.arity} {json.dumps(mirror.target)} {mirror.name}"
 

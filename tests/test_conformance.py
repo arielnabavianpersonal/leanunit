@@ -26,11 +26,14 @@ def double(n, result):
     ({"a": [1, True]}, {"a": [1, True]}, True),
     ({"a": 1, "b": 2}, {"b": 2, "a": 1}, True),
     (True, 1, False),
-    (1, 1.0, False),
+    (1, 1.0, True),
+    (70.0, 70, True),
+    (1, 1.5, False),
+    (False, 0.0, False),
     ([1, 2], [2, 1], False),
     ({"a": None}, {}, False),
 ])
-def test_should_compare_json_strictly(left, right, expected):
+def test_should_compare_json_strictly_but_numbers_by_value(left, right, expected):
     assert same(left, right) is expected
 
 

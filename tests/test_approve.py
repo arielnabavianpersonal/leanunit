@@ -1,7 +1,7 @@
 import pytest
 
 from leanunit.approve import ApproveError, run_approve
-from leanunit.lock import LawApproval, Lock, load_lock, save_lock
+from leanunit.lock import ExclusionApproval, LawApproval, Lock, load_lock, save_lock
 from tests.fakes import FakeLean, audit, law, make_config
 
 TODAY = "2026-11-22"
@@ -68,3 +68,29 @@ def test_should_refuse_a_short_name_that_matches_two_laws(config):
 def test_should_refuse_a_law_that_has_a_problem(config):
     with pytest.raises(ApproveError, match="problems"):
         approve(config, approve_all=True, current=audit(law(problem="not a Prop")))
+
+
+def test_should_approve_each_exclusion_when_approving_all(config):
+    config = make_config(config.root, exclude=("sample_mod:Box.make",))
+
+    result = approve(config, approve_all=True)
+
+    assert result.exclusions == ("sample_mod:Box.make",)
+    assert load_lock(config.lock_path).exclusions == {"sample_mod:Box.make": ExclusionApproval(APPROVER, TODAY)}
+
+
+def test_should_approve_one_exclusion_by_its_target(config):
+    config = make_config(config.root, exclude=("sample_mod:Box.make", "sample_mod:Box.noisy"))
+
+    result = approve(config, names=["sample_mod:Box.noisy"])
+
+    assert (result.approved, result.exclusions) == ((), ("sample_mod:Box.noisy",))
+    assert list(load_lock(config.lock_path).exclusions) == ["sample_mod:Box.noisy"]
+
+
+def test_should_drop_an_exclusion_from_the_lock_when_the_config_stops_excluding_it(config):
+    save_lock(config.lock_path, Lock().approve_exclusion("sample_mod:Box.make", ExclusionApproval(APPROVER, TODAY)))
+
+    approve(config, approve_all=True)
+
+    assert load_lock(config.lock_path).exclusions == {}

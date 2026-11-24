@@ -34,11 +34,11 @@ A human approves each new or changed law.
 ## The lock file
 
 `leanunit.lock` is JSON, like `package-lock.json`.
-It records the Lean toolchain and one entry for each approved law.
+It records the Lean toolchain, one entry for each approved law, and one entry for each approved exclusion.
 
 ```json
 {
-  "lockfileVersion": 1,
+  "lockfileVersion": 2,
   "leanToolchain": "leanprover/lean4:v4.36.0",
   "laws": {
     "Laws.Interrupt.no_standing_approval": {
@@ -46,6 +46,12 @@ It records the Lean toolchain and one entry for each approved law.
       "covers": ["strands.interrupt:_InterruptState.to_dict"],
       "approvedBy": "dev@example.com",
       "approvedAt": "2026-11-22"
+    }
+  },
+  "exclusions": {
+    "strands.interrupt:_InterruptState.from_dict": {
+      "approvedBy": "dev@example.com",
+      "approvedAt": "2026-11-24"
     }
   }
 }
@@ -142,7 +148,7 @@ They exit with 3 when only a human can clear the findings, for example an approv
 The Lean sampler writes one JSON line for each sample, with `target`, `args`, and `expected`.
 The runner reads `target` and `args`, calls the function, and writes the outcome.
 After the last sample, the runner writes the line coverage.
-LeanUnit compares the expected outcome and the actual outcome as JSON, with object keys in any order.
+LeanUnit compares the expected outcome and the actual outcome as JSON, with object keys in any order and numbers by value.
 
 An outcome has one of these two forms:
 
@@ -199,3 +205,24 @@ It measures line coverage with the precise coverage of V8. Type stripping keeps 
 The helper `node_describe.mjs` reads the types through the TypeScript compiler API of the project.
 It gives the same type tree as the Python runner, so `leanunit new` writes Lean in the same way for each language.
 A new language needs a runner and a describe helper. The Lean library and the core do not change.
+
+## Version 0.5: more of the Python code
+
+A benchmark on the Strands Agents SDK found these causes for the bugs that LeanUnit missed:
+
+| Cause | Misses |
+|---|---|
+| The bug was in code that version 0.3 cannot mirror. | 117 |
+| The bug needed an input that JSON cannot carry. | 39 |
+| The bug changed a default value. | 12 |
+
+Version 0.5 removes most of these causes.
+
+- The Python runner mirrors properties, classmethods, staticmethods, constructors, and value methods such as `__str__`.
+- A parameter with a default value has the Lean type `Arg α`. The value `.default` makes the runner leave out the argument.
+- The runners send `bytes`, special floats, enums, sets, plain objects, and functions as tagged JSON objects.
+- The lock records each approved exclusion. An unapproved exclusion gives the human-owned finding `unapproved_exclusion`.
+- A private method of a covered class is a helper. A helper needs no mirror, but the samples must execute each of its lines.
+  Thus, a refactor that extracts a private method does not make the check fail.
+
+The lock file has version 2. LeanUnit reads a version 1 lock as a lock without exclusions.

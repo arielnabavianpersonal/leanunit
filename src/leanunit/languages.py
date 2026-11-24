@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from leanunit import pycode
-from leanunit.pycode import TargetError, split_target
+from leanunit.pycode import Members, TargetError, split_target
 
 RUNNERS = Path(__file__).parent / "runners"
 PYTHON_RUNNER = RUNNERS / "python_runner.py"
@@ -37,11 +37,11 @@ class Language:
             command = self._node_describe(runtime, source_root, "--describe", target)
         return _run_json(command, cwd)
 
-    def methods_of(self, runtime: tuple[str, ...], source_root: Path, cwd: Path, target: str) -> tuple[str, ...]:
+    def members_of(self, runtime: tuple[str, ...], source_root: Path, cwd: Path, target: str) -> Members:
         if self.name == "python":
-            return pycode.methods_of(source_root, target)
+            return pycode.members_of(source_root, target)
         answer = _run_json(self._node_describe(runtime, source_root, "--methods", target), cwd)
-        return tuple(answer["methods"])
+        return Members(tuple(answer["methods"]))
 
     def module_file(self, source_root: Path, module: str) -> Path:
         if self.name == "python":

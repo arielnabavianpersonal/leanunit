@@ -29,6 +29,7 @@ class FindingKind(Enum):
     UNCOVERED_CODE = ("uncovered_code", Owner.AGENT)
     UNUSED_MIRROR = ("unused_mirror", Owner.AGENT)
     TARGET_ERROR = ("target_error", Owner.HUMAN)
+    UNAPPROVED_EXCLUSION = ("unapproved_exclusion", Owner.HUMAN)
 
     def __init__(self, label: str, owner: Owner) -> None:
         self.label = label
@@ -47,6 +48,7 @@ class TargetStatus(Enum):
     NO_LAW = "no law"
     NO_MIRROR = "no mirror"
     EXCLUDED = "excluded"
+    HELPER = "helper"
 
 
 @dataclass(frozen=True)
@@ -160,10 +162,16 @@ class Report:
         return "\n".join(lines) + "\n"
 
     def _coverage_summary(self) -> str:
-        counted = [entry for entry in self.coverage if entry.status is not TargetStatus.EXCLUDED]
+        measured = [entry for entry in self.coverage if entry.status is not TargetStatus.EXCLUDED]
+        counted = [entry for entry in measured if entry.status is not TargetStatus.HELPER]
+        excluded = len(self.coverage) - len(measured)
         covered = sum(entry.status is TargetStatus.COVERED for entry in counted)
-        total_lines = sum(entry.lines or 0 for entry in counted)
-        executed = sum(entry.executed or 0 for entry in counted)
+        total_lines = sum(entry.lines or 0 for entry in measured)
+        executed = sum(entry.executed or 0 for entry in measured)
         share = f" ({executed * 100 // total_lines}%)" if total_lines else ""
-        return f"Coverage: {covered} of {len(counted)} targets have laws. Samples executed {executed} of {total_lines} lines{share}."
+        skipped = f" {excluded} excluded." if excluded else ""
+        return (
+            f"Coverage: {covered} of {len(counted)} targets have laws.{skipped} "
+            f"Samples executed {executed} of {total_lines} lines{share}."
+        )
 

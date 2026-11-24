@@ -8,7 +8,9 @@ from typing import Any
 from leanunit.config import Config
 from leanunit.pycode import TargetError, split_target
 
-LEAN_PRIMITIVES = {"str": "String", "int": "Int", "bool": "Bool", "float": "Val", "none": "Unit", "any": "Val"}
+LEAN_PRIMITIVES = {
+    "str": "String", "int": "Int", "bool": "Bool", "float": "Val", "none": "Unit", "any": "Val", "bytes": "Bytes",
+}
 LEAN_KEYWORDS = frozenset({
     "Prop", "Sort", "Type", "abbrev", "at", "attribute", "axiom", "break", "builtin_initialize", "by",
     "calc", "catch", "class", "continue", "decreasing_by", "def", "deriving", "do", "elab", "else",
@@ -96,7 +98,7 @@ def lean_type(tree: dict[str, Any], type_names: dict[str, str]) -> str:
     kind = tree["kind"]
     if kind in LEAN_PRIMITIVES:
         return LEAN_PRIMITIVES[kind]
-    if kind == "dataclass":
+    if kind in ("dataclass", "enum"):
         return type_names[tree["name"]]
     wrapper = {"list": "List", "dict": "Dict", "optional": "Option"}[kind]
     inner = tree["value"] if kind == "dict" else tree["item"]
@@ -111,7 +113,7 @@ def _dependency_order(types: dict[str, Any]) -> list[str]:
         if type_name in ordered or type_name in visiting:
             return
         visiting.add(type_name)
-        for field in types[type_name]["fields"]:
+        for field in types[type_name].get("fields", []):
             for dependency in _dataclasses_in(field["type"]):
                 visit(dependency)
         visiting.discard(type_name)
@@ -123,7 +125,7 @@ def _dependency_order(types: dict[str, Any]) -> list[str]:
 
 
 def _dataclasses_in(tree: dict[str, Any]) -> list[str]:
-    if tree["kind"] == "dataclass":
+    if tree["kind"] in ("dataclass", "enum"):
         return [tree["name"]]
     inner = tree.get("item") or tree.get("value")
     return _dataclasses_in(inner) if inner else []
@@ -131,9 +133,32 @@ def _dataclasses_in(tree: dict[str, Any]) -> list[str]:
 
 def _model_file(name: str, description: dict[str, Any], ordered: list[str], type_names: dict[str, str]) -> str:
     owner = description["owner"]
-    structures = [_structure(type_name, description["types"][type_name], type_names) for type_name in ordered]
+    structures = [_type_definition(type_name, description["types"][type_name], type_names) for type_name in ordered]
     stubs = [_mirror_stub(function, owner, type_names) for function in description["functions"]]
     return _module("LeanUnit", "Lean LeanUnit", f"Model.{name}", [*structures, *stubs])
+
+
+def _type_definition(type_name: str, shape: dict[str, Any], type_names: dict[str, str]) -> str:
+    return _enum(type_names[type_name], shape) if "enum" in shape else _structure(type_name, shape, type_names)
+
+
+def _enum(lean_type_name: str, shape: dict[str, Any]) -> str:
+    members = [(lean_name(member), f"{shape['enum']}.{member}") for member in shape["members"]]
+    return "\n".join([
+        f"inductive {lean_type_name} where",
+        *(f"  | {name}" for name, _ in members),
+        "deriving DecidableEq, Repr",
+        "",
+        f"instance : ToJson {lean_type_name} where",
+        "  toJson",
+        *(f'    | .{name} => Json.mkObj [("__enum__", Json.str "{path}")]' for name, path in members),
+        "",
+        f"instance : FromJson {lean_type_name} where",
+        "  fromJson? json := do",
+        '    match ← json.getObjValAs? String "__enum__" with',
+        *(f'    | "{path}" => pure .{name}' for name, path in members),
+        '    | other => throw s!"{other} is not a member"',
+    ])
 
 
 def _structure(type_name: str, shape: dict[str, Any], type_names: dict[str, str]) -> str:
@@ -142,21 +167,28 @@ def _structure(type_name: str, shape: dict[str, Any], type_names: dict[str, str]
 
 
 def _mirror_stub(function: dict[str, Any], owner: dict[str, Any] | None, type_names: dict[str, str]) -> str:
-    arguments = len(function["params"]) + (1 if owner else 0)
-    if not 1 <= arguments <= MAX_ARGUMENTS:
+    has_receiver = function.get("receiver", owner is not None) and owner is not None
+    arguments = len(function["params"]) + (1 if has_receiver else 0)
+    if arguments > MAX_ARGUMENTS:
         raise StubError(
-            f"{function['target']} takes {arguments} arguments, but LeanUnit supports 1 to {MAX_ARGUMENTS}, the object included"
+            f"{function['target']} takes {arguments} arguments, but LeanUnit supports up to {MAX_ARGUMENTS}, the object included"
         )
-    binders = [f"(self : {lean_type(owner, type_names)})"] if owner else []
-    binders += [f"({lean_name(param['name'])} : {lean_type(param['type'], type_names)})" for param in function["params"]]
-    state = lean_type(owner, type_names) if owner else "Unit"
-    receiver = "self" if owner else "()"
+    binders = [f"(self : {lean_type(owner, type_names)})"] if has_receiver else []
+    binders += [f"({lean_name(param['name'])} : {_param_type(param, type_names)})" for param in function["params"]]
+    state = lean_type(owner, type_names) if has_receiver else "Unit"
+    receiver = "self" if has_receiver else "()"
     returns = lean_type(function["returns"], type_names)
+    signature = " ".join([lean_name(function["name"]), *binders])
     return "\n".join([
         f'@[mirror "{function["target"]}"]',
-        f"def {lean_name(function['name'])} {' '.join(binders)} : Outcome {state} {returns} :=",
+        f"def {signature} : Outcome {state} {returns} :=",
         f'  .raise "{NOT_IMPLEMENTED}" {receiver}',
     ])
+
+
+def _param_type(param: dict[str, Any], type_names: dict[str, str]) -> str:
+    inner = lean_type(param["type"], type_names)
+    return f"(Arg {inner})" if param.get("default") else inner
 
 
 def _gen_file(name: str, description: dict[str, Any], ordered: list[str], type_names: dict[str, str]) -> str:
@@ -165,6 +197,9 @@ def _gen_file(name: str, description: dict[str, Any], ordered: list[str], type_n
 
 
 def _sample_instance(lean_type_name: str, shape: dict[str, Any]) -> str:
+    if "enum" in shape:
+        members = [f".{lean_name(member)}" for member in shape["members"]]
+        return f"instance : Sample {lean_type_name} :=\n  ⟨Gen.elements {members[0]} [{', '.join(members)}]⟩"
     fields = ", ".join(f"{lean_name(field['name'])} := ← Sample.sample" for field in shape["fields"])
     return f"instance : Sample {lean_type_name} :=\n  ⟨do pure {{ {fields} }}⟩"
 

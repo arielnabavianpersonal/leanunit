@@ -7,7 +7,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
-LOCKFILE_VERSION = 1
+LOCKFILE_VERSION = 2
+READABLE_VERSIONS = (1, 2)
 
 
 class LockError(Exception):
@@ -23,9 +24,24 @@ class LawApproval:
 
 
 @dataclass(frozen=True)
+class ExclusionApproval:
+    approved_by: str
+    approved_at: str
+
+
+@dataclass(frozen=True)
 class Lock:
     lean_toolchain: str | None = None
     laws: Mapping[str, LawApproval] = field(default_factory=lambda: MappingProxyType({}))
+    exclusions: Mapping[str, ExclusionApproval] = field(default_factory=lambda: MappingProxyType({}))
+
+    def approve_exclusion(self, target: str, approval: ExclusionApproval) -> Lock:
+        return replace(self, exclusions=MappingProxyType({**self.exclusions, target: approval}))
+
+    def remove_exclusion(self, target: str) -> Lock:
+        return replace(
+            self, exclusions=MappingProxyType({key: value for key, value in self.exclusions.items() if key != target})
+        )
 
     def approve(self, name: str, approval: LawApproval) -> Lock:
         return replace(self, laws=MappingProxyType({**self.laws, name: approval}))
@@ -44,11 +60,15 @@ def load_lock(path: Path) -> Lock:
         data = json.loads(path.read_text())
     except json.JSONDecodeError as error:
         raise LockError(f"{path} is not valid JSON: {error}") from error
-    if data.get("lockfileVersion") != LOCKFILE_VERSION:
+    if data.get("lockfileVersion") not in READABLE_VERSIONS:
         raise LockError(f"{path} has lockfileVersion {data.get('lockfileVersion')!r}, expected {LOCKFILE_VERSION}")
     return Lock(
         lean_toolchain=data.get("leanToolchain"),
         laws=MappingProxyType({name: _parse_approval(entry) for name, entry in data.get("laws", {}).items()}),
+        exclusions=MappingProxyType({
+            target: ExclusionApproval(approved_by=entry["approvedBy"], approved_at=entry["approvedAt"])
+            for target, entry in data.get("exclusions", {}).items()
+        }),
     )
 
 
@@ -69,6 +89,10 @@ def lock_to_json(lock: Lock) -> str:
                 "approvedAt": approval.approved_at,
             }
             for name, approval in lock.laws.items()
+        },
+        "exclusions": {
+            target: {"approvedBy": approval.approved_by, "approvedAt": approval.approved_at}
+            for target, approval in lock.exclusions.items()
         },
     }
     return json.dumps(data, indent=2, sort_keys=True) + "\n"

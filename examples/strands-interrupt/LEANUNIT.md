@@ -21,7 +21,7 @@ A human approves each law. Anyone can write the models, the generators, and the 
 | 0 | The check passed. | Continue. |
 | 1 | The check found work for an agent or a developer. | Do the step for each finding. |
 | 2 | The command or the configuration is wrong. | Read the error message. |
-| 3 | Only a human can clear the findings. | Tell a human which laws to approve. |
+| 3 | Only a human can clear the findings. | Tell a human which laws and exclusions to approve. |
 
 ## Files
 
@@ -46,12 +46,12 @@ A human approves each law. Anyone can write the models, the generators, and the 
 | `open_law` | Write a theorem whose type is exactly the law. |
 | `bad_axiom` | Remove `sorry` or the extra axiom from the proof. |
 | `forbidden_constant` | Write the definition again without the forbidden feature. |
-| `missing_lines` | Change the generators in `lean/Gen/`, so that the samples execute the missing lines. |
+| `missing_lines` | Change the generators in `lean/Gen/`, so that the samples execute the missing lines. For a private helper, change the samples of the methods that call it. |
 | `uncovered_code` | Run `leanunit new` for the code, then complete the model. |
 | `unused_mirror` | Write a draft law that uses the mirror, and prove it. |
 | `harness_error` | Correct the model types, so that their JSON form agrees with the types in the code. |
 | `lean_error` | Correct the Lean error in the log. |
-| `unapproved_law`, `changed_law`, `removed_law`, `toolchain_changed`, `target_error` | A human must do this step. |
+| `unapproved_law`, `changed_law`, `removed_law`, `unapproved_exclusion`, `toolchain_changed`, `target_error` | A human must do this step. |
 
 ## Add laws for new code
 
@@ -75,6 +75,38 @@ The table name in `leanunit.toml` is the language of the code: `[python]`, `[typ
 
 For TypeScript and JavaScript, the module is the path from `source_root`, without the file extension.
 A TypeScript `number` becomes a Lean `Int`. A field or a parameter without a type becomes `Val`.
+
+## What LeanUnit mirrors in Python
+
+| Code | Target | Model function |
+|---|---|---|
+| A function | `module:function` | One argument for each parameter. |
+| A method or a property of a dataclass | `module:Class.method` | The first argument is the object. |
+| A classmethod or a staticmethod | `module:Class.method` | No object. The state is `Unit`. |
+| A constructor | `module:Class.__init__` | No object. The return value is the new object. |
+| `__str__`, `__repr__`, `__eq__`, `__len__`, and other value methods | `module:Class.__str__` | The first argument is the object. |
+
+A private method of a covered class, such as `_reset`, is a helper. A helper needs no mirror. The samples of the other methods must execute each line of the helper.
+
+A parameter with a default value has the Lean type `Arg α`. The value `.default` leaves out the argument, so the code uses its default value. Use `Arg.getD` in the model.
+
+## Values that JSON does not have
+
+The runners send these values as tagged JSON objects. The Lean helpers make the same JSON.
+LeanUnit compares numbers by value. Thus, the Lean `Int` 70 agrees with the Python float `70.0`.
+
+| Value | JSON | Lean |
+|---|---|---|
+| `bytes` | `{"__bytes__": "<base64>"}` | The type `Bytes`, or `Val.bytes` |
+| A float that is not finite | `{"__float__": "inf"}` | `Val.float "inf"` |
+| An enum member | `{"__enum__": "module:Class.MEMBER"}` | The inductive type that `leanunit new` writes, or `Val.enum` |
+| A set | `{"__set__": [...]}`, with the items in sorted order | `Val.obj` |
+| An object that is not a dataclass | `{"__class__": "module:Class", ...}`, with each attribute | `Val.object` |
+| A function or a class | `{"__callable__": "module:name"}` | `Val.callable` |
+
+## Exclusions
+
+If LeanUnit cannot mirror a function, add the function to `exclude` in `leanunit.toml`. Then tell a human why. Until a human approves the exclusion, `leanunit check` reports `unapproved_exclusion`. Do not exclude a function to make the check pass.
 
 ## Rules
 

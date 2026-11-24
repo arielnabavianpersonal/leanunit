@@ -161,8 +161,9 @@ To let LeanUnit start an agent for you, set a command in the `[agent]` table of 
 - No proof uses `sorry` or an axiom other than `propext`, `Classical.choice`, and `Quot.sound`.
 - No definition that a law or a mirror uses has `implemented_by`, `extern`, `unsafe`, or `partial`.
 - Each mirror gives the same JSON output as its code function on all samples.
-- The samples execute each line of each mirrored code function.
+- The samples execute each line of each mirrored code function, and each line of each private helper of a covered class.
 - Each function in the `cover` list has a mirror, and a law uses each mirror.
+- A human approved each function in the `exclude` list.
 
 ## The lock file
 
@@ -170,6 +171,7 @@ The lock records a hash for each law.
 The hash covers the law and each helper definition that the law uses.
 A change to a mirrored function does not change the hash, because conformance ties that function to the real code.
 Thus, an agent can repair a proof without approval, but it cannot weaken a law without approval.
+The lock also records each approved exclusion, so an agent cannot remove code from the check without approval.
 
 ## Write a model
 
@@ -185,6 +187,8 @@ def activate (s : State) : Outcome State Unit :=
 - `Outcome.ok self ret` is a normal return. `Outcome.raise "KeyError" self` is an exception.
 - `LeanUnit.Val` holds any JSON value, for example a field of type `Any`.
 - `LeanUnit.Dict α` is a Python `dict[str, T]` or a TypeScript `Record<string, T>`.
+- `LeanUnit.Arg α` is a parameter with a default value. The value `.default` leaves out the argument.
+- `LeanUnit.Bytes` is a Python `bytes` value. Other values that JSON does not have, such as enums, sets, and plain objects, travel as tagged JSON. Refer to `LEANUNIT.md`.
 - The JSON form of each model type must agree with the value in the code. Use the field names of the code.
 
 ## Example
@@ -201,7 +205,7 @@ After the bug fix in `docs/demo.md`, the agent updates the model, and all 14 law
 ## Limits
 
 - LeanUnit supports pure logic only. It does not support I/O, threads, floats, or callbacks.
-- In Python, LeanUnit mirrors plain functions and the methods of dataclasses. It does not mirror async functions, classmethods, staticmethods, properties, or dunder methods.
+- In Python, LeanUnit mirrors functions, and the methods, properties, constructors, and value methods such as `__str__` of dataclasses. It also mirrors the classmethods and staticmethods of each class. It does not mirror async functions.
 - In TypeScript and JavaScript, LeanUnit mirrors exported functions and the methods of exported classes. It waits for the result of an async function. It does not mirror static methods, getters, setters, or functions with rest parameters.
 - TypeScript runs through the type stripping of Node.js. For syntax that type stripping does not support, such as `enum`, set another `runtime`.
 - Conformance is random testing. A model can differ from the code on inputs that the samples do not include.
