@@ -98,7 +98,7 @@ The runners send these values as tagged JSON objects. The Lean helpers make the 
 |---|---|---|
 | `bytes` | `{"__bytes__": "<base64>"}` | The type `Bytes`, or `Val.bytes` |
 | A float that is not finite | `{"__float__": "inf"}` | `Val.float "inf"` |
-| An enum member | `{"__enum__": "module:Class.MEMBER"}` | `Val.enum` |
+| An enum member | `{"__enum__": "module:Class.MEMBER"}` | The inductive type that `leanunit new` writes, or `Val.enum` |
 | A set | `{"__set__": [...]}`, with the items in sorted order | `Val.obj` |
 | An object that is not a dataclass | `{"__class__": "module:Class", ...}`, with each attribute | `Val.object` |
 | A function or a class | `{"__callable__": "module:name"}` | `Val.callable` |

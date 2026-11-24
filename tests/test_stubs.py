@@ -173,3 +173,17 @@ def test_should_map_bytes_to_the_lean_bytes_type(config):
     scaffold_target(config, "sample_mod:size_of", "SizeOf")
 
     assert "def size_of (data : Bytes) : Outcome Unit Int :=" in (config.lean_project / "Model" / "SizeOf.lean").read_text()
+
+
+@pytest.mark.lean
+def test_should_build_and_run_an_enum_parameter_without_harness_errors(tmp_path):
+    write_sample_module(tmp_path)
+    init_project(tmp_path, ".", ("sample_mod:paint",))
+    config = load_config(tmp_path)
+
+    scaffold_target(config, "sample_mod:paint", "Paint")
+    report = run_check(config)
+
+    model = (config.lean_project / "Model" / "Paint.lean").read_text()
+    assert "inductive Color where" in model
+    assert {finding.kind.label for finding in report.findings} == {"mismatch", "unused_mirror"}

@@ -592,6 +592,10 @@ def type_tree(hint: Any, types_seen: dict[str, Any]) -> dict[str, Any]:
         return {"kind": "list", "item": {"kind": "any"}}
     if hint is dict:
         return {"kind": "dict", "value": {"kind": "any"}}
+    if isinstance(hint, type) and issubclass(hint, enum.Enum) and len(hint) > 0:
+        if hint.__name__ not in types_seen:
+            types_seen[hint.__name__] = {"enum": qualified_name(hint), "members": [member.name for member in hint]}
+        return {"kind": "enum", "name": hint.__name__}
     if isinstance(hint, type) and dataclasses.is_dataclass(hint):
         if hint.__name__ not in types_seen:
             types_seen[hint.__name__] = {"fields": []}
