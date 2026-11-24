@@ -63,7 +63,10 @@ def test_should_keep_the_protocol_clean_when_the_code_prints(source_root):
 @pytest.mark.parametrize("request_body, message", [
     ({"target": "sample_mod:missing", "args": []}, "not a Python function"),
     ({"target": "no_such_module:f", "args": []}, "cannot find"),
-    ({"target": "sample_mod:Box.make", "args": []}, "classmethod"),
+    ({"target": "sample_mod:Box.noisy", "args": []}, "first argument must be the object"),
+    ({"target": "sample_mod:double", "args": [{"__default__": True}]}, "has no default value"),
+    ({"target": "sample_mod:looped", "args": []}, "contains itself"),
+    ({"target": "sample_mod:size_of", "args": [{"__bytes__": "not base64!"}]}, "not base64"),
     ({"target": "sample_mod:broken", "args": []}, "cannot encode"),
     ({"target": "sample_mod:double", "args": [1, 2]}, "takes 1 arguments"),
     ({"target": "sample_mod:Box.add", "args": [{"extra": 1}, "k", 1]}, "no fields named"),
@@ -100,3 +103,61 @@ def test_should_pass_keyword_only_arguments_by_name(source_root):
     outcomes, _ = run(source_root, {"target": "sample_mod:window", "args": ["hello", 1, 3, ".", "> "]})
 
     assert outcomes == [{"self": None, "return": "> el"}]
+
+
+METER = {"value": 3}
+
+
+@pytest.mark.parametrize("request_body, outcome", [
+    ({"target": "sample_mod:Meter.doubled", "args": [METER]}, {"self": METER, "return": 6}),
+    ({"target": "sample_mod:Meter.__str__", "args": [METER]}, {"self": METER, "return": "3 m"}),
+    ({"target": "sample_mod:Meter.zero", "args": []}, {"self": None, "return": {"value": 0}}),
+    ({"target": "sample_mod:Box.make", "args": []}, {"self": None, "return": EMPTY_BOX}),
+    ({"target": "sample_mod:Meter.__init__", "args": [{"__default__": True}]}, {"self": None, "return": {"value": 1}}),
+    ({"target": "sample_mod:Meter.__init__", "args": [5]}, {"self": None, "return": {"value": 5}}),
+])
+def test_should_call_properties_dunders_classmethods_staticmethods_and_constructors(source_root, request_body, outcome):
+    outcomes, _ = run(source_root, request_body)
+
+    assert outcomes == [outcome]
+
+
+@pytest.mark.parametrize("args, result", [
+    (["a", {"__default__": True}, {"__default__": True}], "a-x"),
+    (["a", {"__default__": True}, "y"], "a-y"),
+    (["a", "+", "y"], "a+y"),
+])
+def test_should_use_the_default_value_when_the_model_leaves_out_an_argument(source_root, args, result):
+    outcomes, _ = run(source_root, {"target": "sample_mod:joined", "args": args})
+
+    assert outcomes == [{"self": None, "return": result}]
+
+
+@pytest.mark.parametrize("request_body, result", [
+    ({"target": "sample_mod:pack", "args": ["hi"]}, {"__bytes__": "aGk="}),
+    ({"target": "sample_mod:size_of", "args": [{"__bytes__": "aGk="}]}, 2),
+    ({"target": "sample_mod:paint", "args": [{"__enum__": "sample_mod:Color.RED"}]}, "red"),
+    ({"target": "sample_mod:paint", "args": ["blue"]}, "blue"),
+    ({"target": "sample_mod:favorite", "args": []}, {"__enum__": "sample_mod:Color.BLUE"}),
+    ({"target": "sample_mod:make_plain", "args": [2]}, {"__class__": "sample_mod:Plain", "n": 2, "_seen": [2]}),
+    ({"target": "sample_mod:plain_total", "args": [{"__class__": "sample_mod:Plain", "n": 4}]}, 4),
+    ({"target": "sample_mod:unique", "args": [[3, 1, 3]]}, {"__set__": [1, 3]}),
+    ({"target": "sample_mod:ratio", "args": [1, 0]}, {"__float__": "inf"}),
+    ({"target": "sample_mod:ratio", "args": [1, 2]}, 0.5),
+])
+def test_should_encode_and_decode_values_that_json_does_not_have(source_root, request_body, result):
+    outcomes, _ = run(source_root, request_body)
+
+    assert outcomes == [{"self": None, "return": result}]
+
+
+def test_should_measure_the_lines_of_a_watched_helper_through_its_callers(source_root):
+    _, coverage = run(
+        source_root,
+        {"watch": "sample_mod:Meter._scale"},
+        {"target": "sample_mod:Meter.doubled", "args": [METER]},
+    )
+
+    lines = (source_root / "sample_mod.py").read_text().splitlines()
+    missing = [lines[number - 1].strip() for number in coverage["sample_mod:Meter._scale"]["missing"]]
+    assert missing == ['raise ValueError("negative")']

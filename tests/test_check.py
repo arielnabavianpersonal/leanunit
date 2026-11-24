@@ -1,8 +1,8 @@
 import pytest
 
 from leanunit.check import run_check
-from leanunit.lean import ForbiddenInfo, LeanError, ProofInfo, Sample
-from leanunit.lock import LawApproval, Lock, save_lock
+from leanunit.lean import ForbiddenInfo, LeanError, MirrorInfo, ProofInfo, Sample
+from leanunit.lock import ExclusionApproval, LawApproval, Lock, save_lock
 from leanunit.report import LawState, LawStatus, Owner, TargetStatus
 from tests.fakes import MIRROR, SAMPLES, FakeLean, audit, law, make_config
 from tests.sample_code import write_sample_module
@@ -146,3 +146,45 @@ def test_should_mark_a_mirror_without_laws(config):
     report = run_check(config, FakeLean(audit(law(covers=()))))
 
     assert [row.status for row in report.coverage] == [TargetStatus.NO_LAW]
+
+
+def test_should_ask_a_human_to_approve_an_exclusion_when_the_lock_lacks_it(config):
+    config = make_config(config.root, exclude=("sample_mod:Box.make",))
+    approve(config, law())
+
+    report = run_check(config, FakeLean(audit(law())))
+
+    assert kinds(report) == ["unapproved_exclusion"]
+    assert report.needs_human_only
+
+
+def test_should_accept_an_exclusion_when_a_human_approved_it(config):
+    config = make_config(config.root, exclude=("sample_mod:Box.make",))
+    approvals = {law().name: LawApproval(law().statement, law().covers, "dev@example.com", "2026-11-22")}
+    exclusions = {"sample_mod:Box.make": ExclusionApproval("dev@example.com", "2026-11-24")}
+    save_lock(config.lock_path, Lock(lean_toolchain="4.36.0", laws=approvals, exclusions=exclusions))
+
+    assert run_check(config, FakeLean(audit(law()))).passed
+
+
+METER = {"value": 3}
+METER_TARGETS = ("sample_mod:Meter.doubled", "sample_mod:Meter.__str__", "sample_mod:Meter.zero")
+METER_MIRRORS = tuple(
+    MirrorInfo(name=f"Model.m{index}", module="Model.Main", target=target, arity=1) for index, target in enumerate(METER_TARGETS)
+)
+METER_SAMPLES = (
+    Sample("sample_mod:Meter.doubled", [METER], {"self": METER, "return": 6}),
+    Sample("sample_mod:Meter.__str__", [METER], {"self": METER, "return": "3 m"}),
+    Sample("sample_mod:Meter.zero", [], {"self": None, "return": {"value": 0}}),
+)
+
+
+def test_should_require_the_samples_to_run_each_line_of_a_private_helper(config):
+    config = make_config(config.root, cover=("sample_mod:Meter",))
+    meter_law = law(covers=METER_TARGETS)
+    approve(config, meter_law)
+
+    report = run_check(config, FakeLean(audit(meter_law, mirrors=METER_MIRRORS), samples=METER_SAMPLES))
+
+    assert [(finding.kind.label, finding.subject) for finding in report.findings] == [("missing_lines", "sample_mod:Meter._scale")]
+    assert {row.target: row.status for row in report.coverage}["sample_mod:Meter._scale"] is TargetStatus.HELPER

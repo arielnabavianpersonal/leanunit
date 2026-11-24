@@ -3,5 +3,7 @@ import LeanUnit.Val
 import LeanUnit.Dict
 import LeanUnit.Outcome
 import LeanUnit.Gen
+import LeanUnit.Arg
+import LeanUnit.Bytes
 import LeanUnit.Mirror
 import LeanUnit.Audit

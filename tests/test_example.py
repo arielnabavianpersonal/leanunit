@@ -30,7 +30,7 @@ def kinds(report):
 def test_should_ask_a_human_to_approve_each_law_when_the_lock_is_empty(example):
     report = run_check(example)
 
-    assert kinds(report) == ["refuted_law", "unapproved_law"]
+    assert kinds(report) == ["refuted_law", "unapproved_exclusion", "unapproved_law"]
     assert len([finding for finding in report.findings if finding.kind.label == "unapproved_law"]) == len(report.laws)
 
 

@@ -13,6 +13,10 @@ namespace Mirror
 
 variable {α β γ δ ε ζ η θ ρ : Type}
 
+def of0 [ToJson ρ] (target : String) (f : ρ) : Mirror where
+  target := target
+  sample _ _ := (Json.arr #[], toJson f)
+
 def of1 [Sample α] [ToJson α] [ToJson ρ] (target : String) (f : α → ρ) : Mirror where
   target := target
   sample size seed :=

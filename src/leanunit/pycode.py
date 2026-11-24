@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import ast
+from dataclasses import dataclass
 from pathlib import Path
+
+from leanunit.runners.python_runner import is_public_member
 
 FUNCTION_NODES = (ast.FunctionDef, ast.AsyncFunctionDef)
 
@@ -25,20 +28,26 @@ def module_file(source_root: Path, module: str) -> Path:
     raise TargetError(f"module {module!r} has no file under {source_root}")
 
 
-def methods_of(source_root: Path, target: str) -> tuple[str, ...]:
+@dataclass(frozen=True)
+class Members:
+    required: tuple[str, ...]
+    helpers: tuple[str, ...] = ()
+
+
+def members_of(source_root: Path, target: str) -> Members:
     module, qualname = split_target(target)
     node = _find(ast.parse(module_file(source_root, module).read_text()), qualname, target)
-    if isinstance(node, ast.ClassDef):
-        return tuple(
-            f"{module}:{qualname}.{item.name}"
-            for item in node.body
-            if isinstance(item, FUNCTION_NODES) and not _is_dunder(item.name)
-        )
-    return (target,)
+    if not isinstance(node, ast.ClassDef):
+        return Members((target,))
+    names = list(dict.fromkeys(item.name for item in node.body if isinstance(item, FUNCTION_NODES)))
+    return Members(
+        required=tuple(f"{module}:{qualname}.{name}" for name in names if is_public_member(name)),
+        helpers=tuple(f"{module}:{qualname}.{name}" for name in names if _is_helper(name)),
+    )
 
 
-def _is_dunder(name: str) -> bool:
-    return name.startswith("__") and name.endswith("__")
+def _is_helper(name: str) -> bool:
+    return name.startswith("_") and not name.endswith("__")
 
 
 def _find(tree: ast.Module, qualname: str, target: str) -> ast.AST:

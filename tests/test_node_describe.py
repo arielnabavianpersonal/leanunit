@@ -34,7 +34,7 @@ def test_should_describe_the_fields_and_methods_of_a_class(source_root):
 
 
 def test_should_list_the_methods_without_static_methods(source_root):
-    methods = TYPESCRIPT.methods_of(TYPESCRIPT.default_runtime, source_root, source_root, "typed:Box")
+    methods = TYPESCRIPT.members_of(TYPESCRIPT.default_runtime, source_root, source_root, "typed:Box").required
 
     assert methods == ("typed:Box.add", "typed:Box.names")
 

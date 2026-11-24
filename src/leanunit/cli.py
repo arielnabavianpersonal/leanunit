@@ -129,6 +129,8 @@ def _approve(root: Path, options: argparse.Namespace) -> int:
         print(f"approved {name}")
     for name in result.removed:
         print(f"removed {name}")
+    for target in result.exclusions:
+        print(f"approved the exclusion of {target}")
     print(f"wrote {result.lock_path}")
     return EXIT_OK
 

@@ -43,10 +43,11 @@ def same(left: Any, right: Any) -> bool:
     return left == right
 
 
-def run_conformance(config: Config, samples: Sequence[Sample]) -> ConformanceResult:
+def run_conformance(config: Config, samples: Sequence[Sample], watch: Sequence[str] = ()) -> ConformanceResult:
     if not samples:
         return ConformanceResult()
-    requests = "".join(json.dumps({"target": sample.target, "args": sample.args}) + "\n" for sample in samples)
+    watched = "".join(json.dumps({"watch": target}) + "\n" for target in watch)
+    requests = watched + "".join(json.dumps({"target": sample.target, "args": sample.args}) + "\n" for sample in samples)
     command = config.language.runner_command(config.runtime, config.source_root)
     try:
         completed = subprocess.run(

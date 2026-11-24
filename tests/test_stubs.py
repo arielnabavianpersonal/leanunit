@@ -64,7 +64,7 @@ def test_should_refuse_a_function_with_too_many_arguments():
     params = [{"name": f"p{index}", "type": {"kind": "int"}} for index in range(8)]
     description = {**DESCRIPTION, "functions": [{**DESCRIPTION["functions"][0], "params": params}]}
 
-    with pytest.raises(StubError, match="supports 1 to 8"):
+    with pytest.raises(StubError, match="supports up to 8"):
         render_files("Holder", description)
 
 
@@ -77,11 +77,11 @@ def config(tmp_path):
 def test_should_describe_the_types_and_written_methods_of_a_dataclass(config):
     description = describe_target(config, "sample_mod:Box")
 
-    assert [function["name"] for function in description["functions"]] == ["add", "add_all", "first_name", "noisy"]
+    assert [function["name"] for function in description["functions"]] == ["add", "add_all", "first_name", "noisy", "make", "__init__"]
     assert description["types"]["Box"]["fields"][0] == {
         "name": "items", "type": {"kind": "dict", "value": {"kind": "dataclass", "name": "Item"}}
     }
-    assert description["functions"][0]["params"][1] == {"name": "value", "type": {"kind": "any"}}
+    assert description["functions"][0]["params"][1] == {"name": "value", "type": {"kind": "any"}, "default": False}
 
 
 @pytest.mark.parametrize("target, message", [
@@ -99,7 +99,9 @@ def test_should_write_four_files_without_excluded_functions(config):
     assert sorted(path.relative_to(config.lean_project).as_posix() for path in result.created) == [
         "Gen/Box.lean", "Laws/Box.lean", "Model/Box.lean", "Proofs/Box.lean"
     ]
-    assert result.mirrors == ("sample_mod:Box.add", "sample_mod:Box.add_all", "sample_mod:Box.first_name")
+    assert result.mirrors == (
+        "sample_mod:Box.add", "sample_mod:Box.add_all", "sample_mod:Box.first_name", "sample_mod:Box.make", "sample_mod:Box.__init__"
+    )
     assert result.in_cover_list
 
 
@@ -120,8 +122,7 @@ def test_should_build_and_run_the_stubs_without_harness_errors(tmp_path):
     report = run_check(config)
 
     kinds = {finding.kind.label for finding in report.findings}
-    assert kinds == {"mismatch", "unused_mirror", "uncovered_code"}
-    assert {finding.subject for finding in report.findings if finding.kind.label == "uncovered_code"} == {"sample_mod:Box.make"}
+    assert kinds == {"mismatch", "unused_mirror"}
 
 
 def test_should_describe_keyword_only_parameters(config):
@@ -145,3 +146,30 @@ def test_should_build_and_run_a_five_argument_mirror_without_harness_errors(tmp_
 @pytest.mark.parametrize("name", ["prefix", "notation", "mutual", "local"])
 def test_should_escape_lean_command_keywords(name):
     assert lean_name(name) == f"«{name}»"
+
+
+def test_should_describe_each_kind_of_member_of_a_dataclass(config):
+    description = describe_target(config, "sample_mod:Meter")
+
+    assert [(function["name"], function["kind"], function["receiver"]) for function in description["functions"]] == [
+        ("doubled", "property", True),
+        ("__str__", "method", True),
+        ("zero", "staticmethod", False),
+        ("__init__", "constructor", False),
+    ]
+    assert description["functions"][3]["params"] == [{"name": "value", "type": {"kind": "int"}, "default": True}]
+
+
+def test_should_write_stubs_without_self_and_with_arg_for_defaults(config):
+    scaffold_target(config, "sample_mod:Meter")
+
+    model = (config.lean_project / "Model" / "Meter.lean").read_text()
+    assert "def zero : Outcome Unit Meter :=" in model
+    assert "def __init__ (value : (Arg Int)) : Outcome Unit Meter :=" in model
+    assert "def doubled (self : Meter) : Outcome Meter Int :=" in model
+
+
+def test_should_map_bytes_to_the_lean_bytes_type(config):
+    scaffold_target(config, "sample_mod:size_of", "SizeOf")
+
+    assert "def size_of (data : Bytes) : Outcome Unit Int :=" in (config.lean_project / "Model" / "SizeOf.lean").read_text()

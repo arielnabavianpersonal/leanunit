@@ -8,7 +8,9 @@ from typing import Any
 from leanunit.config import Config
 from leanunit.pycode import TargetError, split_target
 
-LEAN_PRIMITIVES = {"str": "String", "int": "Int", "bool": "Bool", "float": "Val", "none": "Unit", "any": "Val"}
+LEAN_PRIMITIVES = {
+    "str": "String", "int": "Int", "bool": "Bool", "float": "Val", "none": "Unit", "any": "Val", "bytes": "Bytes",
+}
 LEAN_KEYWORDS = frozenset({
     "Prop", "Sort", "Type", "abbrev", "at", "attribute", "axiom", "break", "builtin_initialize", "by",
     "calc", "catch", "class", "continue", "decreasing_by", "def", "deriving", "do", "elab", "else",
@@ -142,21 +144,28 @@ def _structure(type_name: str, shape: dict[str, Any], type_names: dict[str, str]
 
 
 def _mirror_stub(function: dict[str, Any], owner: dict[str, Any] | None, type_names: dict[str, str]) -> str:
-    arguments = len(function["params"]) + (1 if owner else 0)
-    if not 1 <= arguments <= MAX_ARGUMENTS:
+    has_receiver = function.get("receiver", owner is not None) and owner is not None
+    arguments = len(function["params"]) + (1 if has_receiver else 0)
+    if arguments > MAX_ARGUMENTS:
         raise StubError(
-            f"{function['target']} takes {arguments} arguments, but LeanUnit supports 1 to {MAX_ARGUMENTS}, the object included"
+            f"{function['target']} takes {arguments} arguments, but LeanUnit supports up to {MAX_ARGUMENTS}, the object included"
         )
-    binders = [f"(self : {lean_type(owner, type_names)})"] if owner else []
-    binders += [f"({lean_name(param['name'])} : {lean_type(param['type'], type_names)})" for param in function["params"]]
-    state = lean_type(owner, type_names) if owner else "Unit"
-    receiver = "self" if owner else "()"
+    binders = [f"(self : {lean_type(owner, type_names)})"] if has_receiver else []
+    binders += [f"({lean_name(param['name'])} : {_param_type(param, type_names)})" for param in function["params"]]
+    state = lean_type(owner, type_names) if has_receiver else "Unit"
+    receiver = "self" if has_receiver else "()"
     returns = lean_type(function["returns"], type_names)
+    signature = " ".join([lean_name(function["name"]), *binders])
     return "\n".join([
         f'@[mirror "{function["target"]}"]',
-        f"def {lean_name(function['name'])} {' '.join(binders)} : Outcome {state} {returns} :=",
+        f"def {signature} : Outcome {state} {returns} :=",
         f'  .raise "{NOT_IMPLEMENTED}" {receiver}',
     ])
+
+
+def _param_type(param: dict[str, Any], type_names: dict[str, str]) -> str:
+    inner = lean_type(param["type"], type_names)
+    return f"(Arg {inner})" if param.get("default") else inner
 
 
 def _gen_file(name: str, description: dict[str, Any], ordered: list[str], type_names: dict[str, str]) -> str:

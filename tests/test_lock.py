@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from leanunit.lock import LawApproval, Lock, LockError, load_lock, lock_to_json, save_lock
+from leanunit.lock import ExclusionApproval, LawApproval, Lock, LockError, load_lock, lock_to_json, save_lock
 
 APPROVAL = LawApproval(statement="sha256:abc", covers=("m:f",), approved_by="dev@example.com", approved_at="2026-11-22")
 
@@ -36,20 +36,36 @@ def test_should_write_sorted_camel_case_json():
     text = lock_to_json(Lock().with_toolchain("4.36.0").approve("Laws.b", APPROVAL).approve("Laws.a", APPROVAL))
 
     assert json.loads(text) == {
-        "lockfileVersion": 1,
+        "lockfileVersion": 2,
         "leanToolchain": "4.36.0",
         "laws": {
             name: {"statement": "sha256:abc", "covers": ["m:f"], "approvedBy": "dev@example.com", "approvedAt": "2026-11-22"}
             for name in ("Laws.a", "Laws.b")
         },
+        "exclusions": {},
     }
     assert text.index('"Laws.a"') < text.index('"Laws.b"')
     assert text.endswith("\n")
 
 
-@pytest.mark.parametrize("text", ["not json", '{"lockfileVersion": 2}'])
+@pytest.mark.parametrize("text", ["not json", '{"lockfileVersion": 3}'])
 def test_should_raise_when_the_file_is_invalid(tmp_path, text):
     (tmp_path / "leanunit.lock").write_text(text)
 
     with pytest.raises(LockError):
         load_lock(tmp_path / "leanunit.lock")
+
+
+def test_should_round_trip_approved_exclusions(tmp_path):
+    lock = Lock().approve_exclusion("m:C.f", ExclusionApproval("dev@example.com", "2026-11-24"))
+
+    path = save_lock(tmp_path / "leanunit.lock", lock)
+
+    assert load_lock(path).exclusions == {"m:C.f": ExclusionApproval("dev@example.com", "2026-11-24")}
+
+
+def test_should_read_a_version_1_lock_without_exclusions(tmp_path):
+    path = tmp_path / "leanunit.lock"
+    path.write_text('{"lockfileVersion": 1, "leanToolchain": null, "laws": {}}')
+
+    assert load_lock(path).exclusions == {}

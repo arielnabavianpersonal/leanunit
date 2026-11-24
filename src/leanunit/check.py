@@ -29,13 +29,18 @@ def run_check(config: Config, lean: LeanBackend | None = None) -> Report:
     except LeanError as error:
         return Report(findings=(_lean_error(error),))
     targets = _cover_targets(config)
-    findings = [*_law_findings(audit, lock), *_forbidden_findings(audit), *_coverage_findings(targets, audit)]
+    findings = [
+        *_law_findings(audit, lock),
+        *_exclusion_findings(config, lock),
+        *_forbidden_findings(audit),
+        *_coverage_findings(targets, audit),
+    ]
     try:
         samples = backend.sample(audit, config.samples, config.seed)
     except LeanError as error:
         findings.append(_lean_error(error))
         samples = ()
-    conformance = run_conformance(config, samples)
+    conformance = run_conformance(config, samples, watch=targets.helpers)
     findings += _conformance_findings(config, conformance)
     return Report(
         findings=tuple(findings),
@@ -126,6 +131,16 @@ def _proof_findings(law: LawInfo) -> Iterable[Finding]:
         )
 
 
+def _exclusion_findings(config: Config, lock: Lock) -> Iterable[Finding]:
+    for target in config.exclude:
+        if target not in lock.exclusions:
+            yield Finding(
+                FindingKind.UNAPPROVED_EXCLUSION,
+                target,
+                f"No human approved the exclusion of this code. Read why it is excluded, then run `leanunit approve {target}`.",
+            )
+
+
 def _forbidden_findings(audit: Audit) -> Iterable[Finding]:
     for item in audit.forbidden:
         yield Finding(
@@ -139,23 +154,26 @@ def _forbidden_findings(audit: Audit) -> Iterable[Finding]:
 @dataclass(frozen=True)
 class CoverTargets:
     required: tuple[str, ...]
+    helpers: tuple[str, ...]
     excluded: tuple[str, ...]
     errors: tuple[Finding, ...]
 
 
 def _cover_targets(config: Config) -> CoverTargets:
     required: list[str] = []
+    helpers: list[str] = []
     excluded: list[str] = []
     errors: list[Finding] = []
     for target in config.cover:
         try:
-            methods = config.language.methods_of(config.runtime, config.source_root, config.root, target)
+            members = config.language.members_of(config.runtime, config.source_root, config.root, target)
         except TargetError as error:
             errors.append(Finding(FindingKind.TARGET_ERROR, target, str(error)))
             continue
-        required += [method for method in methods if method not in config.exclude]
-        excluded += [method for method in methods if method in config.exclude]
-    return CoverTargets(tuple(required), tuple(excluded), tuple(errors))
+        required += [member for member in members.required if member not in config.exclude]
+        helpers += [member for member in members.helpers if member not in config.exclude]
+        excluded += [member for member in (*members.required, *members.helpers) if member in config.exclude]
+    return CoverTargets(tuple(required), tuple(helpers), tuple(excluded), tuple(errors))
 
 
 def _coverage_findings(targets: CoverTargets, audit: Audit) -> Iterable[Finding]:
@@ -167,7 +185,7 @@ def _coverage_findings(targets: CoverTargets, audit: Audit) -> Iterable[Finding]
             yield Finding(
                 FindingKind.UNCOVERED_CODE,
                 target,
-                "This code is in the cover list, but no model function mirrors it. Run `leanunit new`, or add it to exclude in leanunit.toml.",
+                "This code is in the cover list, but no model function mirrors it. Run `leanunit new`. If LeanUnit cannot mirror it, add it to exclude in leanunit.toml and ask a human to approve the exclusion.",
             )
     for mirror in audit.mirrors:
         if mirror.target not in used:
@@ -181,16 +199,17 @@ def _coverage_table(targets: CoverTargets, audit: Audit, conformance: Conformanc
         for target in law.covers:
             laws.setdefault(target, []).append(law.name)
     listed = [*targets.required, *(target for target in mirrors if target not in targets.required)]
+    helpers = [helper for helper in targets.helpers if helper not in mirrors]
     rows = [
         TargetCoverage(
             target=target,
-            status=_target_status(target in mirrors, bool(laws.get(target))),
+            status=TargetStatus.HELPER if target in helpers else _target_status(target in mirrors, bool(laws.get(target))),
             mirror=mirrors.get(target),
             laws=tuple(laws.get(target, ())),
             lines=conformance.line_totals.get(target),
             missing=conformance.missing_lines.get(target, ()),
         )
-        for target in listed
+        for target in [*listed, *helpers]
     ]
     return tuple(rows) + tuple(TargetCoverage(target, TargetStatus.EXCLUDED) for target in targets.excluded)
 
